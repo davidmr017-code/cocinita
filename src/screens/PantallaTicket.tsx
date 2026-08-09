@@ -6,6 +6,7 @@ import { aFechaISO, nuevoId } from '../domain/utilidades';
 import {
   aCentimos,
   formatearEuro,
+  quienDebePagarSiguiente,
   repartirIgual,
   sumaRepartos,
 } from '../services/gastos';
@@ -33,12 +34,19 @@ export function PantallaTicket() {
     [esNuevo, gastos, id],
   );
 
+  const sugeridoPagar = useMemo(
+    () => quienDebePagarSiguiente(gastos, miembros),
+    [gastos, miembros],
+  );
+
   const [foto, setFoto] = useState<string | undefined>(existente?.foto);
   const [comercio, setComercio] = useState(existente?.comercio ?? '');
   const [fecha, setFecha] = useState(existente?.fecha ?? aFechaISO(new Date()));
   const [total, setTotal] = useState(existente?.total?.toString() ?? '');
   const [notas, setNotas] = useState(existente?.notas ?? '');
-  const [pagadoPorId, setPagadoPorId] = useState(existente?.pagadoPorId ?? miembros[0]?.id ?? '');
+  const [pagadoPorId, setPagadoPorId] = useState(
+    existente?.pagadoPorId ?? sugeridoPagar?.miembroId ?? miembros[0]?.id ?? '',
+  );
   const [seleccionados, setSeleccionados] = useState<string[]>(() => {
     if (existente?.repartos?.length) return existente.repartos.map((r) => r.miembroId);
     return miembros.map((m) => m.id);
@@ -209,10 +217,17 @@ export function PantallaTicket() {
               {miembros.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nombre}
+                  {sugeridoPagar?.miembroId === m.id && esNuevo ? ' (le toca)' : ''}
                 </option>
               ))}
             </select>
           </label>
+          {esNuevo && sugeridoPagar && (
+            <p className="text-xs text-on-surface-variant -mt-1">
+              Para equilibrar, sugerimos que pague{' '}
+              <span className="font-semibold text-on-surface">{sugeridoPagar.nombre}</span>.
+            </p>
+          )}
           <label className="text-xs font-bold text-on-surface-variant">
             Notas
             <input

@@ -67,6 +67,88 @@ export function totalesPorMiembro(
   }));
 }
 
+export type SaldoMiembro = {
+  miembroId: string;
+  nombre: string;
+  color?: string;
+  /** Lo que ha pagado en caja. */
+  pagado: number;
+  /** Su parte del gasto (reparto). */
+  consumo: number;
+  /**
+   * pagado − consumo.
+   * Positivo: ha adelantado dinero (le deben).
+   * Negativo: debe ponerse al día (le toca pagar).
+   */
+  saldo: number;
+};
+
+/**
+ * Saldos para equilibrar: quién ha pagado de más o de menos
+ * respecto a su parte de las compras.
+ */
+export function calcularSaldos(
+  tickets: TicketCompra[],
+  miembros: MiembroHogar[],
+): SaldoMiembro[] {
+  const pagado = new Map<string, number>();
+  const consumo = new Map<string, number>();
+
+  for (const t of tickets) {
+    if (t.pagadoPorId) {
+      pagado.set(t.pagadoPorId, aCentimos((pagado.get(t.pagadoPorId) ?? 0) + (t.total || 0)));
+    }
+    for (const r of t.repartos) {
+      consumo.set(r.miembroId, aCentimos((consumo.get(r.miembroId) ?? 0) + (r.importe || 0)));
+    }
+  }
+
+  return miembros
+    .map((m) => {
+      const p = pagado.get(m.id) ?? 0;
+      const c = consumo.get(m.id) ?? 0;
+      return {
+        miembroId: m.id,
+        nombre: m.nombre,
+        color: m.color,
+        pagado: p,
+        consumo: c,
+        saldo: aCentimos(p - c),
+      };
+    })
+    .sort((a, b) => a.saldo - b.saldo);
+}
+
+/**
+ * Quién debería pagar/comprar a continuación para igualar
+ * (el saldo más bajo = quien más debe ponerse al día).
+ */
+export function quienDebePagarSiguiente(
+  tickets: TicketCompra[],
+  miembros: MiembroHogar[],
+): SaldoMiembro | null {
+  if (miembros.length === 0) return null;
+  const saldos = calcularSaldos(tickets, miembros);
+  if (tickets.length === 0) return saldos[0] ?? null;
+
+  const minimo = saldos[0];
+  if (!minimo) return null;
+
+  // Si todos están empatados (o casi), cualquiera vale; preferimos el más bajo.
+  const empatados = saldos.filter((s) => Math.abs(s.saldo - minimo.saldo) < 0.01);
+  if (empatados.length === saldos.length && Math.abs(minimo.saldo) < 0.01) {
+    return minimo;
+  }
+  return minimo;
+}
+
+/** Texto corto del estado de saldo. */
+export function etiquetaSaldo(saldo: number): string {
+  if (Math.abs(saldo) < 0.01) return 'En equilibrio';
+  if (saldo > 0) return `Le deben ${formatearEuro(saldo)}`;
+  return `Debe ${formatearEuro(Math.abs(saldo))}`;
+}
+
 export function totalTickets(tickets: TicketCompra[]): number {
   return aCentimos(tickets.reduce((acc, t) => acc + (t.total || 0), 0));
 }

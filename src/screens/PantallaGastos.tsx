@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 
 import { useAppStore } from '../store/useAppStore';
 import {
+  calcularSaldos,
+  etiquetaSaldo,
   formatearEuro,
   mesActualISO,
+  quienDebePagarSiguiente,
   ticketsDelMes,
   totalTickets,
   totalesPorMiembro,
@@ -13,18 +16,29 @@ import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
 /**
- * GASTOS DEL HOGAR — resumen mensual, reparto por miembro y listado de tickets.
+ * GASTOS DEL HOGAR — resumen, equilibrio (quién paga) y tickets.
  */
 export function PantallaGastos() {
   const gastos = useAppStore((s) => s.gastos);
   const miembros = useAppStore((s) => s.perfil.miembros);
   const [mes, setMes] = useState(mesActualISO());
+  const [periodoSaldo, setPeriodoSaldo] = useState<'mes' | 'todo'>('todo');
 
   const delMes = useMemo(() => ticketsDelMes(gastos, mes), [gastos, mes]);
   const totalMes = totalTickets(delMes);
   const porMiembro = useMemo(
     () => totalesPorMiembro(delMes, miembros).sort((a, b) => b.total - a.total),
     [delMes, miembros],
+  );
+
+  const ticketsParaSaldo = periodoSaldo === 'mes' ? delMes : gastos;
+  const saldos = useMemo(
+    () => calcularSaldos(ticketsParaSaldo, miembros),
+    [ticketsParaSaldo, miembros],
+  );
+  const siguiente = useMemo(
+    () => quienDebePagarSiguiente(ticketsParaSaldo, miembros),
+    [ticketsParaSaldo, miembros],
   );
 
   const ordenados = useMemo(
@@ -35,11 +49,14 @@ export function PantallaGastos() {
   const nombreMiembro = (id?: string) =>
     miembros.find((m) => m.id === id)?.nombre ?? 'Sin asignar';
 
+  const equilibrados =
+    saldos.length > 0 && saldos.every((s) => Math.abs(s.saldo) < 0.01);
+
   return (
     <div className="max-w-lg mx-auto">
       <EncabezadoPagina
         titulo="Gastos"
-        subtitulo="Tickets de compra y reparto entre la familia."
+        subtitulo="Tickets, saldos y a quién le toca comprar."
       />
 
       <div className="flex gap-2 mb-4">
@@ -47,6 +64,109 @@ export function PantallaGastos() {
           <Icono nombre="receipt_long" /> Escanear ticket
         </Link>
       </div>
+
+      {siguiente && miembros.length > 1 && (
+        <section className="tarjeta p-4 mb-4 border-primary-fixed-dim bg-primary-fixed/30">
+          <div className="flex items-start gap-3">
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-sm font-bold shrink-0"
+              style={{ background: siguiente.color ?? '#3f5c3e' }}
+            >
+              {siguiente.nombre.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-on-primary-fixed-variant">
+                Le toca comprar / pagar
+              </p>
+              <p className="text-xl font-bold text-on-surface leading-tight">{siguiente.nombre}</p>
+              <p className="text-sm text-on-surface-variant mt-1">
+                {equilibrados
+                  ? 'Estáis empatados: puede pagar cualquiera; sugerimos empezar por esta persona.'
+                  : Math.abs(siguiente.saldo) < 0.01
+                    ? 'Para seguir equilibrados, que pague esta persona la próxima compra.'
+                    : `Ha puesto ${formatearEuro(Math.abs(siguiente.saldo))} de menos que su parte. Si paga la próxima, se iguala.`}
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/gastos/nuevo"
+            className="btn-secundario mt-3 w-full justify-center text-sm"
+          >
+            <Icono nombre="shopping_bag" /> Registrar compra de {siguiente.nombre}
+          </Link>
+        </section>
+      )}
+
+      <section className="tarjeta p-4 mb-4">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 className="font-semibold text-base">Equilibrio del hogar</h3>
+            <p className="text-xs text-on-surface-variant mt-0.5">
+              Pagado en caja menos su parte del gasto
+            </p>
+          </div>
+          <div className="flex rounded-xl border border-outline-variant overflow-hidden text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setPeriodoSaldo('todo')}
+              className={`cursor-pointer px-2.5 py-1.5 ${
+                periodoSaldo === 'todo'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-lowest text-on-surface-variant'
+              }`}
+            >
+              Todo
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodoSaldo('mes')}
+              className={`cursor-pointer px-2.5 py-1.5 ${
+                periodoSaldo === 'mes'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-lowest text-on-surface-variant'
+              }`}
+            >
+              Mes
+            </button>
+          </div>
+        </div>
+
+        {saldos.length === 0 ? (
+          <p className="text-sm text-on-surface-variant">Añade miembros en el perfil del hogar.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {saldos.map((s) => (
+              <div key={s.miembroId} className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
+                  style={{ background: s.color ?? '#3f5c3e' }}
+                >
+                  {s.nombre.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold truncate">{s.nombre}</span>
+                    <span
+                      className={`text-sm font-bold tabular-nums shrink-0 ${
+                        s.saldo > 0.009
+                          ? 'text-primary'
+                          : s.saldo < -0.009
+                            ? 'text-secondary'
+                            : 'text-on-surface-variant'
+                      }`}
+                    >
+                      {etiquetaSaldo(s.saldo)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">
+                    Pagó {formatearEuro(s.pagado)} · Su parte {formatearEuro(s.consumo)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="tarjeta p-4 mb-4">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -70,7 +190,7 @@ export function PantallaGastos() {
 
         {porMiembro.length > 0 && (
           <div className="flex flex-col gap-2 pt-2 border-t border-outline-variant/50">
-            <p className="text-xs font-bold text-on-surface-variant mb-1">Por persona</p>
+            <p className="text-xs font-bold text-on-surface-variant mb-1">Parte del gasto (mes)</p>
             {porMiembro.map((m) => (
               <div key={m.miembroId} className="flex items-center gap-3">
                 <div
