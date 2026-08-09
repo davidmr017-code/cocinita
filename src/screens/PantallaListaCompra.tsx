@@ -50,7 +50,6 @@ export function PantallaListaCompra() {
   const titulosReceta = useMemo(() => new Map(recetas.map((r) => [r.id, r.titulo])), [recetas]);
 
   const pendientes = listaCompra.filter((i) => !i.comprado).length;
-  const recetasOrigen = new Set(listaCompra.flatMap((i) => i.recetaIds)).size;
 
   /* Agrupa la lista por categoría del ingrediente (como en el diseño). */
   const grupos = useMemo(() => {
