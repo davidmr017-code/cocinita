@@ -5,57 +5,57 @@
  * Cálido, táctil y editorial. Sin gradientes genéricos ni píldoras por todas partes.
  */
 @theme {
-  /* ---- Paleta (pergamino + salvia + terracota) ---- */
-  --color-surface: #fdf9f4;
-  --color-surface-dim: #e8e0d6;
-  --color-surface-bright: #fffdf9;
-  --color-surface-container-lowest: #fffdf9;
-  --color-surface-container-low: #f8f2ea;
-  --color-surface-container: #f2ebe2;
-  --color-surface-container-high: #ebe3d8;
-  --color-surface-container-highest: #e0d8cc;
-  --color-on-surface: #2c2926;
-  --color-on-surface-variant: #5c564f;
-  --color-surface-variant: #e8e0d6;
-  --color-inverse-surface: #3a3632;
-  --color-inverse-on-surface: #f5f0e8;
-  --color-inverse-primary: #b8d4b5;
-  --color-outline: #8a8278;
-  --color-outline-variant: #d4cbc0;
-  --color-surface-tint: #4a6848;
+  /* ---- Paleta (naranjas cálidos) ---- */
+  --color-surface: #fff8f2;
+  --color-surface-dim: #f0e0d4;
+  --color-surface-bright: #fffdfb;
+  --color-surface-container-lowest: #fffdfb;
+  --color-surface-container-low: #fff1e6;
+  --color-surface-container: #ffe8d6;
+  --color-surface-container-high: #f8dcc6;
+  --color-surface-container-highest: #efd0b4;
+  --color-on-surface: #2e2218;
+  --color-on-surface-variant: #6b5342;
+  --color-surface-variant: #f0e0d4;
+  --color-inverse-surface: #3a2a1e;
+  --color-inverse-on-surface: #fff1e6;
+  --color-inverse-primary: #ffb77a;
+  --color-outline: #9a7a62;
+  --color-outline-variant: #e4c9b2;
+  --color-surface-tint: #d45a1a;
 
-  --color-primary: #3f5c3e;
-  --color-on-primary: #fefcf8;
-  --color-primary-container: #c8dcc6;
-  --color-on-primary-container: #1e331f;
-  --color-primary-fixed: #d4e8d2;
-  --color-primary-fixed-dim: #b8d4b5;
-  --color-on-primary-fixed: #142816;
-  --color-on-primary-fixed-variant: #334833;
+  --color-primary: #e85d04;
+  --color-on-primary: #fffdfb;
+  --color-primary-container: #ffd4b0;
+  --color-on-primary-container: #5c2200;
+  --color-primary-fixed: #ffe0c2;
+  --color-primary-fixed-dim: #ffb77a;
+  --color-on-primary-fixed: #3d1400;
+  --color-on-primary-fixed-variant: #7a3208;
 
-  --color-secondary: #a85f3d;
+  --color-secondary: #c2410c;
   --color-on-secondary: #fffaf7;
-  --color-secondary-container: #f0cbb8;
-  --color-on-secondary-container: #5c2f18;
-  --color-secondary-fixed: #f5e4da;
-  --color-secondary-fixed-dim: #e8c9b8;
-  --color-on-secondary-fixed: #3d1a08;
-  --color-on-secondary-fixed-variant: #6b3820;
+  --color-secondary-container: #ffc9a8;
+  --color-on-secondary-container: #5c2200;
+  --color-secondary-fixed: #ffe8d6;
+  --color-secondary-fixed-dim: #ffc9a8;
+  --color-on-secondary-fixed: #3d1400;
+  --color-on-secondary-fixed-variant: #7a3208;
 
-  --color-tertiary: #6b645c;
-  --color-on-tertiary: #fefcf8;
-  --color-tertiary-fixed: #ebe4db;
+  --color-tertiary: #8a6548;
+  --color-on-tertiary: #fffdfb;
+  --color-tertiary-fixed: #f0e0d4;
 
   --color-error: #b3261e;
   --color-on-error: #ffffff;
   --color-error-container: #f9dedc;
   --color-on-error-container: #8c1d18;
 
-  --color-background: #f5efe6;
-  --color-on-background: #2c2926;
+  --color-background: #fff4eb;
+  --color-on-background: #2e2218;
 
-  --color-accent-warm: #e8d5c4;
-  --color-accent-cream: #faf3e8;
+  --color-accent-warm: #ffd4b0;
+  --color-accent-cream: #fff8f2;
 
   /* ---- Tipografía ---- */
   --font-display: 'Rubik', system-ui, sans-serif;
