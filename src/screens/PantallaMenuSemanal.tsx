@@ -5,10 +5,15 @@ import type { TipoComida } from '../domain/tipos';
 import { aFechaISO, diasDeLaSemana } from '../domain/utilidades';
 import { useAppStore, hoyISO } from '../store/useAppStore';
 import { Icono } from '../components/Icono';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 
-const NOMBRE_DIA = new Intl.DateTimeFormat('es-ES', { weekday: 'long' });
-const NOMBRE_CORTO = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
+function formateadores(locale: string) {
+  return {
+    dia: new Intl.DateTimeFormat(locale, { weekday: 'long' }),
+    corto: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }),
+  };
+}
 
 /**
  * PLANIFICADOR SEMANAL:
@@ -19,6 +24,7 @@ const NOMBRE_CORTO = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: '
  *  - "Generar lista global" cruza TODO el menú con la despensa de una vez.
  */
 export function PantallaMenuSemanal() {
+  const { t, locale } = useTraduccion();
   const navegar = useNavigate();
   const recetas = useAppStore((s) => s.recetas);
   const menu = useAppStore((s) => s.menu);
@@ -33,6 +39,7 @@ export function PantallaMenuSemanal() {
 
   const dias = useMemo(() => diasDeLaSemana(), []);
   const titulos = useMemo(() => new Map(recetas.map((r) => [r.id, r])), [recetas]);
+  const fmt = useMemo(() => formateadores(locale), [locale]);
 
   /** Entradas del menú para una casilla concreta (día + comida). */
   const entradasDe = (fecha: string, comida: TipoComida) =>
@@ -75,8 +82,8 @@ export function PantallaMenuSemanal() {
   return (
     <div>
       <EncabezadoPagina
-        titulo="Menú semanal"
-        subtitulo="Arrastra o toca recetas para planificar la semana."
+        titulo={t('menu.titulo')}
+        subtitulo={t('menu.subtitulo')}
         accion={
           <button
             type="button"
@@ -84,7 +91,7 @@ export function PantallaMenuSemanal() {
             disabled={menu.length === 0}
             className="btn-primario disabled:opacity-40"
           >
-            <Icono nombre="shopping_cart" /> Lista global
+            <Icono nombre="shopping_cart" /> {t('menu.listaGlobal')}
           </button>
         }
       />
@@ -92,7 +99,7 @@ export function PantallaMenuSemanal() {
       {/* Bandeja de recetas arrastrables */}
       <div className="mb-6">
         <h3 className="text-sm font-bold text-on-surface-variant mb-2">
-          Tus recetas {recetaEnMano && '· toca un hueco para colocarla'}
+          {t('menu.tusRecetas')} {recetaEnMano && '· …'}
         </h3>
         <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
           {recetas.map((receta) => (
@@ -129,12 +136,14 @@ export function PantallaMenuSemanal() {
               className={`rounded-xl p-3 border ${esHoy ? 'tarjeta bg-primary-fixed/30 border-primary-fixed-dim' : 'bg-surface-container-low border-transparent'}`}
             >
               <p className="text-sm font-bold capitalize">
-                {NOMBRE_DIA.format(dia)}{' '}
+                {fmt.dia.format(dia)}{' '}
                 <span className="font-normal text-on-surface-variant text-xs">
-                  {NOMBRE_CORTO.format(dia)}
+                  {fmt.corto.format(dia)}
                 </span>
                 {esHoy && (
-                  <span className="ml-1 etiqueta etiqueta-salvia py-0 px-1.5 text-[10px]">hoy</span>
+                  <span className="ml-1 etiqueta etiqueta-salvia py-0 px-1.5 text-[10px]">
+                    {t('menu.hoy')}
+                  </span>
                 )}
               </p>
 
@@ -151,7 +160,7 @@ export function PantallaMenuSemanal() {
                   }`}
                 >
                   <p className="text-[11px] font-semibold text-on-surface-variant mb-1 capitalize">
-                    {comida}
+                    {comida === 'comida' ? t('menu.comida') : t('menu.cena')}
                   </p>
                   {entradasDe(fecha, comida).map((entrada) => {
                     const receta = titulos.get(entrada.recetaId);

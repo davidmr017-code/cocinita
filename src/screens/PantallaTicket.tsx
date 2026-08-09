@@ -12,6 +12,7 @@ import {
 } from '../services/gastos';
 import { leerTicketDesdeImagen } from '../services/ocrTicket';
 import { useAppStore } from '../store/useAppStore';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 import { SelectorFoto } from '../components/SelectorFoto';
@@ -20,6 +21,7 @@ import { SelectorFoto } from '../components/SelectorFoto';
  * Alta / edición de un ticket: foto + OCR, total, quién paga y reparto.
  */
 export function PantallaTicket() {
+  const { t } = useTraduccion();
   const { id } = useParams();
   const esNuevo = !id || id === 'nuevo';
   const navigate = useNavigate();
@@ -156,8 +158,8 @@ export function PantallaTicket() {
   return (
     <div className="max-w-lg mx-auto">
       <EncabezadoPagina
-        titulo={esNuevo ? 'Nuevo ticket' : 'Ticket'}
-        subtitulo="Foto del ticket, total y a quién se asigna."
+        titulo={esNuevo ? t('gastos.nuevoTicket') : t('gastos.ticket')}
+        subtitulo={t('gastos.ticketSub')}
       />
 
       <div className="flex flex-col gap-4">

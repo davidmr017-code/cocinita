@@ -12,6 +12,7 @@ import {
   totalTickets,
   totalesPorMiembro,
 } from '../services/gastos';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
@@ -19,6 +20,7 @@ import { Icono } from '../components/Icono';
  * GASTOS DEL HOGAR — resumen, equilibrio (quién paga) y tickets.
  */
 export function PantallaGastos() {
+  const { t } = useTraduccion();
   const gastos = useAppStore((s) => s.gastos);
   const miembros = useAppStore((s) => s.perfil.miembros);
   const [mes, setMes] = useState(mesActualISO());
@@ -55,13 +57,13 @@ export function PantallaGastos() {
   return (
     <div className="max-w-lg mx-auto">
       <EncabezadoPagina
-        titulo="Gastos"
-        subtitulo="Tickets, saldos y a quién le toca comprar."
+        titulo={t('gastos.titulo')}
+        subtitulo={t('gastos.subtitulo')}
       />
 
       <div className="flex gap-2 mb-4">
         <Link to="/gastos/nuevo" className="btn-primario flex-1 justify-center">
-          <Icono nombre="receipt_long" /> Escanear ticket
+          <Icono nombre="receipt_long" /> {t('gastos.escanearTicket')}
         </Link>
       </div>
 
@@ -76,7 +78,7 @@ export function PantallaGastos() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold uppercase tracking-wide text-on-primary-fixed-variant">
-                Le toca comprar / pagar
+                {t('gastos.leToca')}
               </p>
               <p className="text-xl font-bold text-on-surface leading-tight">{siguiente.nombre}</p>
               <p className="text-sm text-on-surface-variant mt-1">

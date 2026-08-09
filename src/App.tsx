@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { BarraSuperior } from './components/BarraSuperior';
 import { NavegacionInferior } from './components/NavegacionInferior';
+import { useTraduccion } from './i18n/useTraduccion';
 import { PantallaExplorador } from './screens/PantallaExplorador';
 import { PantallaMisRecetas } from './screens/PantallaMisRecetas';
 import { PantallaDetalleReceta } from './screens/PantallaDetalleReceta';
@@ -27,6 +28,11 @@ function AppAutenticada() {
   const token = useAuthStore((s) => s.token);
   const sincronizando = useAuthStore((s) => s.sincronizando);
   const ultimoError = useAuthStore((s) => s.ultimoError);
+  const { t, idioma } = useTraduccion();
+
+  useEffect(() => {
+    document.documentElement.lang = idioma;
+  }, [idioma]);
 
   useEffect(() => {
     iniciarSyncFamiliar();
@@ -57,7 +63,7 @@ function AppAutenticada() {
               : 'bg-primary-fixed text-on-primary-fixed-variant'
           }`}
         >
-          {ultimoError ?? 'Sincronizando con el hogar…'}
+          {ultimoError ?? t('sync.sincronizando')}
         </div>
       )}
       <main className="w-full max-w-[1280px] mx-auto px-4 md:px-10 pt-5 pb-28">

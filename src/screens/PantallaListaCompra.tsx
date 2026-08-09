@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { CategoriaIngrediente, Unidad } from '../domain/tipos';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { useAppStore } from '../store/useAppStore';
 import type { SeleccionReceta } from '../services/compras';
 import { Icono } from '../components/Icono';
@@ -26,6 +27,7 @@ const NOMBRE_CATEGORIA: Record<CategoriaIngrediente, string> = {
  *  - Admite apuntes manuales que no vienen de ninguna receta.
  */
 export function PantallaListaCompra() {
+  const { t } = useTraduccion();
   const listaCompra = useAppStore((s) => s.listaCompra);
   const recetas = useAppStore((s) => s.recetas);
   const catalogo = useAppStore((s) => s.ingredientes);
@@ -96,11 +98,9 @@ export function PantallaListaCompra() {
   return (
     <div className="max-w-2xl mx-auto">
       <EncabezadoPagina
-        titulo="Lista de la compra"
+        titulo={t('compra.titulo')}
         subtitulo={
-          pendientes > 0
-            ? `${pendientes} cosas por recoger${recetasOrigen > 0 ? ` · de ${recetasOrigen} receta${recetasOrigen > 1 ? 's' : ''}` : ''}`
-            : 'Todo comprado, o la lista está vacía.'
+          pendientes > 0 ? t('compra.subPendientes', { n: pendientes }) : t('compra.subtodoComprado')
         }
       />
 
@@ -112,7 +112,7 @@ export function PantallaListaCompra() {
           <Icono nombre="receipt_long" className="text-secondary text-xl" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm">Guardar ticket de compra</h3>
+          <h3 className="font-semibold text-sm">{t('compra.guardarTicket')}</h3>
           <p className="text-xs text-on-surface-variant">Escanea el ticket y asígnalo al hogar</p>
         </div>
         <Icono nombre="chevron_right" className="text-on-surface-variant" />
@@ -122,7 +122,7 @@ export function PantallaListaCompra() {
       <details className="tarjeta p-4 mb-4">
         <summary className="cursor-pointer text-sm font-semibold flex items-center gap-2 list-none">
           <Icono nombre="auto_awesome" className="text-primary" />
-          Generar desde recetas (cruza con tu despensa)
+          {t('compra.generar')}
         </summary>
         <div className="mt-3 flex flex-col gap-2">
           {recetas.map((receta) => {

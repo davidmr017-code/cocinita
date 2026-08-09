@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { filtrarRecetas, type FiltrosReceta } from '../services/recetas';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { TarjetaReceta } from '../components/TarjetaReceta';
 import { Chip } from '../components/Chip';
 import { Icono } from '../components/Icono';
@@ -10,6 +11,7 @@ import { EncabezadoPagina } from '../components/EncabezadoPagina';
 const ETIQUETAS_RAPIDAS = ['vegetariano', 'vegano', 'sin gluten', 'saludable', 'postre', 'casero'];
 
 export function PantallaExplorador() {
+  const { t } = useTraduccion();
   const recetas = useAppStore((s) => s.recetas);
   const despensa = useAppStore((s) => s.despensa);
 
@@ -32,10 +34,7 @@ export function PantallaExplorador() {
 
   return (
     <div>
-      <EncabezadoPagina
-        titulo="Explorar recetas"
-        subtitulo="Busca inspiración con lo que ya tienes en la nevera."
-      />
+      <EncabezadoPagina titulo={t('explorar.titulo')} subtitulo={t('explorar.subtitulo')} />
 
       <label className="campo-busqueda mb-5 block">
         <Icono nombre="search" className="text-on-surface-variant shrink-0" />
@@ -43,7 +42,7 @@ export function PantallaExplorador() {
           type="search"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder="Pasta, curry, tarta de manzana…"
+          placeholder={t('explorar.placeholder')}
           className="bg-transparent outline-none w-full text-on-surface placeholder:text-on-surface-variant/80"
         />
       </label>
@@ -56,10 +55,8 @@ export function PantallaExplorador() {
           <Icono nombre="auto_awesome" className="text-primary text-xl" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-on-surface">Chef IA · ¿Qué cocino hoy?</p>
-          <p className="text-xs text-on-surface-variant">
-            La IA inventa recetas con lo que hay en tu despensa
-          </p>
+          <p className="text-sm font-bold text-on-surface">{t('explorar.chefTitulo')}</p>
+          <p className="text-xs text-on-surface-variant">{t('explorar.chefSub')}</p>
         </div>
         <Icono nombre="chevron_right" className="text-on-surface-variant" />
       </Link>
@@ -70,8 +67,8 @@ export function PantallaExplorador() {
             <Icono nombre="kitchen" className="text-primary text-xl" />
           </div>
           <div>
-            <p className="text-sm font-bold text-on-surface">Con lo que tengo</p>
-            <p className="text-xs text-on-surface-variant">Solo recetas que puedes hacer ya</p>
+            <p className="text-sm font-bold text-on-surface">{t('explorar.conLoQueTengo')}</p>
+            <p className="text-xs text-on-surface-variant">{t('explorar.conLoQueTengoSub')}</p>
           </div>
         </div>
         <button
@@ -113,8 +110,8 @@ export function PantallaExplorador() {
       {visibles.length === 0 ? (
         <div className="tarjeta text-center py-16 px-6 text-on-surface-variant">
           <Icono nombre="soup_kitchen" className="text-5xl mb-3 text-primary/60" />
-          <p className="font-serif text-lg text-on-surface mb-1">Nada por aquí</p>
-          <p className="text-sm">Prueba otro filtro o relaja la búsqueda.</p>
+          <p className="font-serif text-lg text-on-surface mb-1">{t('comun.vacio')}</p>
+          <p className="text-sm">{t('explorar.vacioSub')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

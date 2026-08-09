@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import { tiempoRelativo } from '../domain/utilidades';
 import { useAppStore } from '../store/useAppStore';
 import { Icono } from '../components/Icono';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 
 export function PantallaAmigos() {
+  const { t } = useTraduccion();
   const amigos = useAppStore((s) => s.amigos);
   const feed = useAppStore((s) => s.feed);
   const solicitudes = useAppStore((s) => s.solicitudes);
@@ -30,8 +32,8 @@ export function PantallaAmigos() {
   return (
     <div className="max-w-2xl mx-auto">
       <EncabezadoPagina
-        titulo="Cocina con amigos"
-        subtitulo="Inspírate con lo que cocinan y pídeles sus recetas."
+        titulo={t('amigos.titulo')}
+        subtitulo={t('amigos.subtitulo')}
       />
 
       <div className="flex gap-4 mb-6 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">

@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { aFechaISO } from '../domain/utilidades';
+import { IDIOMAS, type Idioma } from '../i18n/diccionario';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { type DatosBackup, useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { forzarSync } from '../store/sync';
@@ -35,9 +37,10 @@ function esBackupValido(datos: unknown): datos is DatosBackup {
 }
 
 /**
- * AJUSTES — copia de seguridad local y restablecimiento de datos.
+ * AJUSTES — idioma, copia de seguridad local y restablecimiento de datos.
  */
 export function PantallaAjustes() {
+  const { t, idioma, fijarIdioma, locale } = useTraduccion();
   const estado = useAppStore();
   const importarDatos = useAppStore((s) => s.importarDatos);
   const restablecerDatos = useAppStore((s) => s.restablecerDatos);
@@ -82,7 +85,7 @@ export function PantallaAjustes() {
     a.download = `cocinita-backup-${aFechaISO(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    mostrarAviso('Copia de seguridad descargada');
+    mostrarAviso(t('ajustes.backupDescargado'));
   };
 
   const alImportar = async (archivo: File | undefined) => {
@@ -92,14 +95,10 @@ export function PantallaAjustes() {
       const texto = await archivo.text();
       const datos = JSON.parse(texto) as unknown;
       if (!esBackupValido(datos)) {
-        setError('El archivo no parece una copia de Cocinita válida.');
+        setError(t('ajustes.errorBackup'));
         return;
       }
-      if (
-        !confirm(
-          'Esto reemplazará todos tus datos actuales (recetas, despensa, lista…). ¿Continuar?',
-        )
-      ) {
+      if (!confirm(t('ajustes.confirmarImportar'))) {
         return;
       }
       importarDatos({
@@ -118,24 +117,20 @@ export function PantallaAjustes() {
         perfil: datos.perfil,
         gastos: Array.isArray(datos.gastos) ? datos.gastos : [],
       });
-      mostrarAviso('Datos restaurados correctamente');
+      mostrarAviso(t('ajustes.datosRestaurados'));
     } catch {
-      setError('No se pudo leer el archivo. ¿Es un JSON válido?');
+      setError(t('ajustes.errorJson'));
     } finally {
       if (inputRef.current) inputRef.current.value = '';
     }
   };
 
   const restablecer = () => {
-    if (
-      !confirm(
-        'Se borrarán tus cambios y se cargarán de nuevo los datos de ejemplo. ¿Seguro?',
-      )
-    ) {
+    if (!confirm(t('ajustes.confirmarRestablecer'))) {
       return;
     }
     restablecerDatos();
-    mostrarAviso('Datos de ejemplo restaurados');
+    mostrarAviso(t('ajustes.ejemploRestaurado'));
   };
 
   const copiarCodigo = async () => {
@@ -145,30 +140,25 @@ export function PantallaAjustes() {
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
     } catch {
-      setError('No se pudo copiar el código');
+      setError(t('ajustes.errorCopiar'));
     }
   };
 
   const salirDelHogar = () => {
-    if (
-      !confirm(
-        'Saldrás del hogar familiar en este dispositivo. Los datos en la nube no se borran. ¿Continuar?',
-      )
-    ) {
+    if (!confirm(t('ajustes.confirmarSalir'))) {
       return;
     }
     cerrarSesion();
   };
 
+  const etiquetaIdioma = (id: Idioma) =>
+    id === 'es' ? t('ajustes.espanol') : t('ajustes.turco');
+
   return (
     <div className="max-w-lg mx-auto">
       <EncabezadoPagina
-        titulo="Ajustes"
-        subtitulo={
-          modo === 'familia'
-            ? 'Hogar compartido, sincronización y copias de seguridad.'
-            : 'Copia de seguridad y datos locales de Cocinita.'
-        }
+        titulo={t('ajustes.titulo')}
+        subtitulo={modo === 'familia' ? t('ajustes.subFamilia') : t('ajustes.subLocal')}
       />
 
       {modo === 'familia' && hogar && usuario && (
@@ -180,7 +170,8 @@ export function PantallaAjustes() {
             <div className="min-w-0">
               <h3 className="font-semibold text-base">{hogar.nombre}</h3>
               <p className="text-sm text-on-surface-variant mt-0.5">
-                Entraste como <span className="font-semibold text-on-surface">{usuario.nombre}</span>
+                {t('ajustes.entrasteComo')}{' '}
+                <span className="font-semibold text-on-surface">{usuario.nombre}</span>
               </p>
             </div>
           </div>
@@ -188,38 +179,40 @@ export function PantallaAjustes() {
           <div className="rounded-xl bg-surface-container px-3 py-3 flex items-center justify-between gap-2">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
-                Código del hogar
+                {t('ajustes.codigoHogar')}
               </p>
               <p className="text-xl font-bold tracking-widest text-primary">{hogar.codigo}</p>
             </div>
             <button type="button" onClick={() => void copiarCodigo()} className="btn-secundario">
               <Icono nombre={copiado ? 'check' : 'content_copy'} />
-              {copiado ? 'Copiado' : 'Copiar'}
+              {copiado ? t('ajustes.copiado') : t('ajustes.copiar')}
             </button>
           </div>
 
           <p className="text-xs text-on-surface-variant">
             {sincronizando
-              ? 'Sincronizando…'
+              ? t('ajustes.sincronizando')
               : ultimoSync
-                ? `Última sync: ${new Date(ultimoSync).toLocaleString('es-ES')}`
-                : 'Los cambios se suben solos a la nube familiar.'}
+                ? t('ajustes.ultimaSync', {
+                    fecha: new Date(ultimoSync).toLocaleString(locale),
+                  })
+                : t('ajustes.syncAuto')}
           </p>
 
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => void forzarSync().then(() => mostrarAviso('Sincronizado'))}
+              onClick={() => void forzarSync().then(() => mostrarAviso(t('ajustes.sincronizado')))}
               className="btn-secundario"
             >
-              <Icono nombre="sync" /> Sincronizar ahora
+              <Icono nombre="sync" /> {t('ajustes.syncAhora')}
             </button>
             <button
               type="button"
               onClick={salirDelHogar}
               className="cursor-pointer px-4 py-2.5 rounded-xl border border-error/40 text-sm font-semibold text-error hover:bg-error-container/40 transition-colors flex items-center gap-2"
             >
-              <Icono nombre="logout" /> Salir del hogar
+              <Icono nombre="logout" /> {t('ajustes.salirHogar')}
             </button>
           </div>
         </section>
@@ -228,17 +221,52 @@ export function PantallaAjustes() {
       {modo === 'local' && (
         <section className="tarjeta p-4 mb-4">
           <p className="text-sm text-on-surface-variant">
-            Estás en modo local (solo este dispositivo).{' '}
+            {t('ajustes.modoLocal')}{' '}
             <button
               type="button"
               onClick={() => cerrarSesion()}
               className="cursor-pointer text-primary font-semibold underline"
             >
-              Conectar un hogar familiar
+              {t('ajustes.conectarHogar')}
             </button>
           </p>
         </section>
       )}
+
+      <section className="tarjeta p-4 mb-4 flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+            <Icono nombre="translate" className="text-primary text-xl" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-base">{t('ajustes.idioma')}</h3>
+            <p className="text-sm text-on-surface-variant mt-0.5">{t('ajustes.idiomaSub')}</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {IDIOMAS.map((op) => {
+            const activo = idioma === op.id;
+            return (
+              <button
+                key={op.id}
+                type="button"
+                onClick={() => fijarIdioma(op.id)}
+                aria-pressed={activo}
+                className={`cursor-pointer flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
+                  activo
+                    ? 'bg-primary text-on-primary border-primary'
+                    : 'border-outline-variant bg-surface-container-lowest text-on-surface'
+                }`}
+              >
+                {etiquetaIdioma(op.id)}
+                <span className="block text-[10px] font-medium opacity-80 mt-0.5">
+                  {op.etiquetaNativa}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <Link
         to="/perfil"
@@ -248,10 +276,8 @@ export function PantallaAjustes() {
           <Icono nombre="family_restroom" className="text-secondary text-xl" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-base">Perfil del hogar</h3>
-          <p className="text-sm text-on-surface-variant">
-            Alérgenos, preferencias y miembros de la familia
-          </p>
+          <h3 className="font-semibold text-base">{t('ajustes.perfilTitulo')}</h3>
+          <p className="text-sm text-on-surface-variant">{t('ajustes.perfilSub')}</p>
         </div>
         <Icono nombre="chevron_right" className="text-on-surface-variant" />
       </Link>
@@ -264,10 +290,8 @@ export function PantallaAjustes() {
           <Icono nombre="receipt_long" className="text-primary text-xl" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-base">Gastos y tickets</h3>
-          <p className="text-sm text-on-surface-variant">
-            Escanea tickets y reparte el gasto entre el hogar
-          </p>
+          <h3 className="font-semibold text-base">{t('ajustes.gastosTitulo')}</h3>
+          <p className="text-sm text-on-surface-variant">{t('ajustes.gastosSub')}</p>
         </div>
         <Icono nombre="chevron_right" className="text-on-surface-variant" />
       </Link>
@@ -278,14 +302,12 @@ export function PantallaAjustes() {
             <Icono nombre="cloud_download" className="text-primary text-xl" />
           </div>
           <div>
-            <h3 className="font-semibold text-base">Exportar copia</h3>
-            <p className="text-sm text-on-surface-variant mt-0.5">
-              Descarga un JSON con recetas, despensa, lista y menú. Guárdalo en un sitio seguro.
-            </p>
+            <h3 className="font-semibold text-base">{t('ajustes.exportar')}</h3>
+            <p className="text-sm text-on-surface-variant mt-0.5">{t('ajustes.exportarSub')}</p>
           </div>
         </div>
         <button type="button" onClick={exportar} className="btn-primario self-start">
-          <Icono nombre="download" /> Descargar backup
+          <Icono nombre="download" /> {t('ajustes.descargar')}
         </button>
       </section>
 
@@ -295,10 +317,8 @@ export function PantallaAjustes() {
             <Icono nombre="upload_file" className="text-secondary text-xl" />
           </div>
           <div>
-            <h3 className="font-semibold text-base">Importar copia</h3>
-            <p className="text-sm text-on-surface-variant mt-0.5">
-              Restaura un backup anterior. Sustituye por completo los datos actuales.
-            </p>
+            <h3 className="font-semibold text-base">{t('ajustes.importar')}</h3>
+            <p className="text-sm text-on-surface-variant mt-0.5">{t('ajustes.importarSub')}</p>
           </div>
         </div>
         <input
@@ -313,7 +333,7 @@ export function PantallaAjustes() {
           onClick={() => inputRef.current?.click()}
           className="btn-secundario self-start"
         >
-          <Icono nombre="folder_open" /> Elegir archivo JSON
+          <Icono nombre="folder_open" /> {t('ajustes.elegirJson')}
         </button>
       </section>
 
@@ -323,10 +343,8 @@ export function PantallaAjustes() {
             <Icono nombre="restart_alt" className="text-error text-xl" />
           </div>
           <div>
-            <h3 className="font-semibold text-base">Restablecer datos de ejemplo</h3>
-            <p className="text-sm text-on-surface-variant mt-0.5">
-              Vuelve al estado inicial de la demo (recetas y despensa de ejemplo).
-            </p>
+            <h3 className="font-semibold text-base">{t('ajustes.restablecerTitulo')}</h3>
+            <p className="text-sm text-on-surface-variant mt-0.5">{t('ajustes.restablecerSub')}</p>
           </div>
         </div>
         <button
@@ -334,14 +352,12 @@ export function PantallaAjustes() {
           onClick={restablecer}
           className="cursor-pointer self-start px-4 py-2.5 rounded-xl border border-error/40 text-sm font-semibold text-error hover:bg-error-container/40 transition-colors flex items-center gap-2"
         >
-          <Icono nombre="delete_forever" /> Restablecer
+          <Icono nombre="delete_forever" /> {t('ajustes.restablecer')}
         </button>
       </section>
 
       <p className="text-xs text-on-surface-variant text-center px-4">
-        {modo === 'familia'
-          ? 'En modo familia los datos viven en Postgres (Railway) y también se cachean en este dispositivo.'
-          : 'En modo local todo se guarda en este dispositivo (localStorage). Un backup te permite cambiar de móvil.'}
+        {modo === 'familia' ? t('ajustes.pieFamilia') : t('ajustes.pieLocal')}
       </p>
 
       {aviso && (

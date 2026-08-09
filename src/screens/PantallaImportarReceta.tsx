@@ -6,6 +6,7 @@ import { baseDe } from '../domain/unidades';
 import { nuevoId } from '../domain/utilidades';
 import { useAppStore } from '../store/useAppStore';
 import { detectarRed, parsearPublicacionSocial } from '../services/parsearRecetaSocial';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
@@ -15,6 +16,7 @@ import { Icono } from '../components/Icono';
  * Cocinita detecta ingredientes, pasos y enlaza el vídeo.
  */
 export function PantallaImportarReceta() {
+  const { t } = useTraduccion();
   const navegar = useNavigate();
   const guardarReceta = useAppStore((s) => s.guardarReceta);
   const asegurarIngrediente = useAppStore((s) => s.asegurarIngrediente);
@@ -113,8 +115,8 @@ Preparación:
   return (
     <div className="max-w-2xl mx-auto">
       <EncabezadoPagina
-        titulo="Importar de redes"
-        subtitulo="Pega el texto de un Reel, TikTok o post y Cocinita monta la receta."
+        titulo={t('importar.titulo')}
+        subtitulo={t('importar.subtitulo')}
       />
 
       <div className="tarjeta p-4 mb-4 text-sm text-on-surface-variant flex gap-2">

@@ -15,6 +15,7 @@ import {
   reorganizarCategorias,
   type PropuestaCategoria,
 } from '../services/categoriasProducto';
+import { useTraduccion } from '../i18n/useTraduccion';
 import {
   seleccionarAgotados,
   seleccionarCaducanPronto,
@@ -38,21 +39,21 @@ function esRecienAnadido(item: ItemDespensa): boolean {
   return ms >= 0 && ms < HORAS_NUEVO * 3600_000;
 }
 
-const CATEGORIAS: Record<CategoriaIngrediente, { etiqueta: string; icono: string }> = {
-  verduras: { etiqueta: 'Verduras', icono: 'eco' },
-  frutas: { etiqueta: 'Frutas', icono: 'nutrition' },
-  lacteos: { etiqueta: 'Lácteos y nevera', icono: 'egg' },
-  proteinas: { etiqueta: 'Proteínas', icono: 'set_meal' },
-  granos: { etiqueta: 'Granos y pasta', icono: 'grain' },
-  condimentos: { etiqueta: 'Condimentos', icono: 'water_drop' },
-  otros: { etiqueta: 'Otros', icono: 'shopping_basket' },
+const ICONO_CATEGORIA: Record<CategoriaIngrediente, string> = {
+  verduras: 'eco',
+  frutas: 'nutrition',
+  lacteos: 'egg',
+  proteinas: 'set_meal',
+  granos: 'grain',
+  condimentos: 'water_drop',
+  otros: 'shopping_basket',
 };
 
-const MOVIMIENTOS_UI: Record<MovimientoStock['tipo'], { etiqueta: string; icono: string }> = {
-  compra: { etiqueta: 'Compra', icono: 'add_shopping_cart' },
-  consumo: { etiqueta: 'Consumo', icono: 'remove_circle' },
-  cocinado: { etiqueta: 'Cocinado', icono: 'skillet' },
-  ajuste: { etiqueta: 'Ajuste', icono: 'tune' },
+const ICONO_MOVIMIENTO: Record<MovimientoStock['tipo'], string> = {
+  compra: 'add_shopping_cart',
+  consumo: 'remove_circle',
+  cocinado: 'skillet',
+  ajuste: 'tune',
 };
 
 function BadgeCaducidad({ caducidad }: { caducidad?: string }) {
@@ -235,6 +236,25 @@ function DetalleItem({
 }
 
 export function PantallaDespensa() {
+  const { t } = useTraduccion();
+  const etiquetaCat = (c: CategoriaIngrediente) =>
+    ({
+      verduras: t('despensa.verduras'),
+      frutas: t('despensa.frutas'),
+      lacteos: t('despensa.lacteos'),
+      proteinas: t('despensa.proteinas'),
+      granos: t('despensa.granos'),
+      condimentos: t('despensa.condimentos'),
+      otros: t('despensa.otros'),
+    })[c];
+  const etiquetaMov = (tipo: MovimientoStock['tipo']) =>
+    ({
+      compra: t('despensa.movCompra'),
+      consumo: t('despensa.movConsumo'),
+      cocinado: t('despensa.movCocinado'),
+      ajuste: t('despensa.movAjuste'),
+    })[tipo];
+
   const despensa = useAppStore((s) => s.despensa);
   const catalogo = useAppStore((s) => s.ingredientes);
   const movimientos = useAppStore((s) => s.movimientos);
@@ -324,16 +344,16 @@ export function PantallaDespensa() {
   return (
     <div>
       <EncabezadoPagina
-        titulo="Mi despensa"
-        subtitulo="Lo que hay en casa, lo que se acaba y lo que falta."
+        titulo={t('despensa.titulo')}
+        subtitulo={t('despensa.subtitulo')}
       />
 
       <div className="flex gap-2 mb-4">
         <Chip activo={vista === 'inventario'} onClick={() => setVista('inventario')}>
-          Inventario
+          {t('despensa.inventario')}
         </Chip>
         <Chip activo={vista === 'historial'} onClick={() => setVista('historial')}>
-          Historial y compras
+          {t('despensa.historial')}
         </Chip>
       </div>
 
@@ -345,14 +365,14 @@ export function PantallaDespensa() {
               type="search"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por nombre, marca o súper…"
+              placeholder={t('despensa.buscar')}
               className="bg-transparent outline-none w-full text-on-surface placeholder:text-on-surface-variant/80"
             />
             {busqueda && (
               <button
                 type="button"
                 onClick={() => setBusqueda('')}
-                aria-label="Limpiar búsqueda"
+                aria-label={t('comun.cerrar')}
                 className="cursor-pointer text-on-surface-variant"
               >
                 <Icono nombre="close" className="text-lg" />
@@ -362,19 +382,19 @@ export function PantallaDespensa() {
 
           <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar -mx-4 px-4">
             <Chip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>
-              Todo
+              {t('despensa.todo')}
             </Chip>
             <Chip activo={filtro === 'nuevos'} onClick={() => setFiltro('nuevos')}>
-              Recién añadidos ({nuevos.length})
+              {t('despensa.recien')} ({nuevos.length})
             </Chip>
             <Chip activo={filtro === 'pocoStock'} onClick={() => setFiltro('pocoStock')}>
-              Queda poco ({pocoStock.length})
+              {t('despensa.quedaPoco')} ({pocoStock.length})
             </Chip>
             <Chip activo={filtro === 'caducan'} onClick={() => setFiltro('caducan')}>
-              Caduca pronto ({caducan.length})
+              {t('despensa.caducaPronto')} ({caducan.length})
             </Chip>
             <Chip activo={filtro === 'agotados'} onClick={() => setFiltro('agotados')}>
-              Agotados ({agotados.length})
+              {t('despensa.agotados')} ({agotados.length})
             </Chip>
           </div>
 
@@ -405,7 +425,7 @@ export function PantallaDespensa() {
               <Icono nombre="auto_fix_high" className="text-primary text-xl" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm">Reorganizar categorías</h3>
+              <h3 className="font-semibold text-sm">{t('despensa.reorganizar')}</h3>
               <p className="text-xs text-on-surface-variant">
                 El asistente revisa la despensa y propone dónde va cada producto
               </p>
@@ -418,10 +438,10 @@ export function PantallaDespensa() {
               <section key={categoria}>
                 <div className="flex items-center gap-2 mb-3 pb-2 border-b border-outline-variant/70">
                   <div className="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center">
-                    <Icono nombre={CATEGORIAS[categoria].icono} className="text-primary text-lg" />
+                    <Icono nombre={ICONO_CATEGORIA[categoria]} className="text-primary text-lg" />
                   </div>
                   <h3 className="font-serif font-semibold text-lg">
-                    {CATEGORIAS[categoria].etiqueta}
+                    {etiquetaCat(categoria)}
                   </h3>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -441,7 +461,7 @@ export function PantallaDespensa() {
                                 <img src={ficha.imagen} alt="" className="w-full h-full object-cover" />
                               ) : (
                                 <Icono
-                                  nombre={CATEGORIAS[ficha.categoria].icono}
+                                  nombre={ICONO_CATEGORIA[ficha.categoria]}
                                   className="text-tertiary"
                                 />
                               )}
@@ -456,7 +476,7 @@ export function PantallaDespensa() {
                               <div className="flex flex-wrap gap-1 mt-0.5">
                                 {esRecienAnadido(item) && (
                                   <span className="etiqueta bg-primary-fixed text-on-primary-fixed-variant">
-                                    Nuevo
+                                    {t('despensa.nuevo')}
                                   </span>
                                 )}
                                 {agotado && (
@@ -577,14 +597,14 @@ export function PantallaDespensa() {
                       : 'bg-secondary-fixed text-on-secondary-fixed'
                   }`}
                 >
-                  <Icono nombre={MOVIMIENTOS_UI[mov.tipo].icono} className="text-xl" />
+                  <Icono nombre={ICONO_MOVIMIENTO[mov.tipo]} className="text-xl" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate">
                     {ficha?.nombre ?? mov.ingredienteId}
                   </p>
                   <p className="text-xs text-on-surface-variant">
-                    {MOVIMIENTOS_UI[mov.tipo].etiqueta}
+                    {etiquetaMov(mov.tipo)}
                     {mov.nota ? ` · ${mov.nota}` : ''} · {tiempoRelativo(mov.fecha)}
                   </p>
                 </div>
@@ -622,7 +642,7 @@ export function PantallaDespensa() {
               <button
                 type="button"
                 onClick={() => setPropuestas(null)}
-                aria-label="Cerrar"
+                aria-label={t('comun.cerrar')}
                 className="cursor-pointer btn-icono"
               >
                 <Icono nombre="close" />
@@ -635,10 +655,10 @@ export function PantallaDespensa() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{p.nombre}</p>
                     <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1 flex-wrap">
-                      {CATEGORIAS[p.categoriaActual].etiqueta}
+                      {etiquetaCat(p.categoriaActual)}
                       <Icono nombre="arrow_forward" className="text-sm" />
                       <span className="font-semibold text-primary">
-                        {CATEGORIAS[p.categoriaPropuesta].etiqueta}
+                        {etiquetaCat(p.categoriaPropuesta)}
                       </span>
                     </p>
                   </div>

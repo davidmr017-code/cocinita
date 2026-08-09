@@ -8,6 +8,7 @@ import { sugerirCategoriaPorNombre } from '../services/categoriasProducto';
 import { ETIQUETA_ALERGENO, ETIQUETA_PREFERENCIA } from '../services/perfil';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
@@ -21,6 +22,7 @@ function aUnidad(u: string): Unidad {
  * CHEF IA — propone recetas con lo que hay en la despensa (Groq vía API).
  */
 export function PantallaChef() {
+  const { t } = useTraduccion();
   const navigate = useNavigate();
   const despensa = useAppStore((s) => s.despensa);
   const catalogo = useAppStore((s) => s.ingredientes);
@@ -118,14 +120,11 @@ export function PantallaChef() {
   if (modo !== 'familia' || !token) {
     return (
       <div className="max-w-lg mx-auto">
-        <EncabezadoPagina titulo="Chef IA" subtitulo="Recetas con lo que tienes en casa." />
+        <EncabezadoPagina titulo={t('chef.titulo')} subtitulo={t('chef.subtituloCasa')} />
         <div className="tarjeta p-6 text-center text-on-surface-variant">
           <Icono nombre="cloud_off" className="text-4xl text-primary mb-2" />
-          <p className="text-sm font-semibold text-on-surface">Necesitas el hogar en la nube</p>
-          <p className="text-xs mt-1">
-            El Chef IA funciona con el hogar familiar conectado. Ve a Ajustes y crea o únete a un
-            hogar.
-          </p>
+          <p className="text-sm font-semibold text-on-surface">{t('chef.cocinaNube')}</p>
+          <p className="text-xs mt-1">{t('chef.cocinaNubeSub')}</p>
         </div>
       </div>
     );
@@ -134,8 +133,8 @@ export function PantallaChef() {
   return (
     <div className="max-w-lg mx-auto">
       <EncabezadoPagina
-        titulo="Chef IA"
-        subtitulo={`Inventa recetas con tus ${conStock.length} ingredientes disponibles.`}
+        titulo={t('chef.titulo')}
+        subtitulo={t('chef.subtitulo', { n: conStock.length })}
       />
 
       <button
@@ -145,7 +144,7 @@ export function PantallaChef() {
         className="btn-primario w-full justify-center mb-4 disabled:opacity-40"
       >
         <Icono nombre={cargando ? 'hourglass_top' : 'auto_awesome'} />
-        {cargando ? 'Pensando recetas…' : '¿Qué cocino hoy?'}
+        {cargando ? t('chef.pensando') : t('chef.cta')}
       </button>
 
       {conStock.length === 0 && (
@@ -161,7 +160,7 @@ export function PantallaChef() {
       {cargando && (
         <div className="tarjeta p-6 text-center text-on-surface-variant animate-pulse">
           <Icono nombre="skillet" className="text-4xl text-primary mb-2" />
-          <p className="text-sm">El chef está mirando tu despensa…</p>
+          <p className="text-sm">{t('chef.mirando')}</p>
         </div>
       )}
 
@@ -200,7 +199,7 @@ export function PantallaChef() {
 
                 {abiertaEsta && (
                   <div className="mt-3 pt-3 border-t border-outline-variant/50">
-                    <p className="text-xs font-bold text-on-surface-variant mb-2">Ingredientes</p>
+                    <p className="text-xs font-bold text-on-surface-variant mb-2">{t('chef.ingredientes')}</p>
                     <ul className="flex flex-col gap-1 mb-3">
                       {r.ingredientes.map((ing, i) => (
                         <li key={i} className="text-sm flex items-center gap-2">
@@ -221,7 +220,7 @@ export function PantallaChef() {
                       ))}
                     </ul>
 
-                    <p className="text-xs font-bold text-on-surface-variant mb-2">Pasos</p>
+                    <p className="text-xs font-bold text-on-surface-variant mb-2">{t('chef.pasos')}</p>
                     <ol className="flex flex-col gap-2 mb-4">
                       {r.pasos.map((p, i) => (
                         <li key={i} className="text-sm flex gap-2">
@@ -243,7 +242,7 @@ export function PantallaChef() {
                       className="btn-primario w-full justify-center disabled:opacity-50"
                     >
                       <Icono nombre={yaGuardada ? 'check' : 'bookmark_add'} />
-                      {yaGuardada ? 'Guardada en mis recetas' : 'Guardar en mis recetas'}
+                      {yaGuardada ? t('chef.guardada') : t('chef.guardar')}
                     </button>
                   </div>
                 )}
@@ -257,7 +256,7 @@ export function PantallaChef() {
             disabled={cargando}
             className="btn-secundario justify-center"
           >
-            <Icono nombre="refresh" /> Proponme otras
+            <Icono nombre="refresh" /> {t('chef.otras')}
           </button>
 
           {guardadas.size > 0 && (
@@ -266,7 +265,7 @@ export function PantallaChef() {
               onClick={() => navigate('/recetas')}
               className="cursor-pointer text-sm text-primary font-semibold underline text-center"
             >
-              Ver mis recetas guardadas
+              {t('chef.verGuardadas')}
             </button>
           )}
         </div>

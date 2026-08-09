@@ -4,6 +4,7 @@ import { crearHogar, unirseHogar } from '../services/api';
 import { DATOS_SEED } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { aplicarEstadoRemoto, extraerEstadoApp } from '../store/sync';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
@@ -13,6 +14,7 @@ type Pestaña = 'crear' | 'unirse';
  * Acceso familiar: crear hogar o unirse con código (Postgres / Railway).
  */
 export function PantallaAcceso() {
+  const { t } = useTraduccion();
   const elegirLocal = useAuthStore((s) => s.elegirLocal);
   const establecerSesion = useAuthStore((s) => s.establecerSesion);
 
@@ -76,8 +78,8 @@ export function PantallaAcceso() {
   return (
     <div className="max-w-md mx-auto py-6">
       <EncabezadoPagina
-        titulo="Cocinita en familia"
-        subtitulo="Misma despensa y recetas para todos en casa, con base de datos en la nube."
+        titulo={t('acceso.titulo')}
+        subtitulo={t('acceso.subtitulo')}
       />
 
       <div className="flex gap-2 mb-5">
@@ -90,7 +92,7 @@ export function PantallaAcceso() {
               : 'border-outline-variant bg-surface-container-lowest'
           }`}
         >
-          Crear hogar
+          {t('acceso.crear')}
         </button>
         <button
           type="button"
@@ -101,14 +103,14 @@ export function PantallaAcceso() {
               : 'border-outline-variant bg-surface-container-lowest'
           }`}
         >
-          Unirme
+          {t('acceso.unirme')}
         </button>
       </div>
 
       <div className="tarjeta p-4 flex flex-col gap-3">
         {pestaña === 'crear' && (
           <label className="text-xs font-bold text-on-surface-variant">
-            Nombre del hogar
+            {t('acceso.nombreHogar')}
             <input
               className="campo text-sm mt-1 font-normal"
               value={nombreHogar}
@@ -120,7 +122,7 @@ export function PantallaAcceso() {
 
         {pestaña === 'unirse' && (
           <label className="text-xs font-bold text-on-surface-variant">
-            Código del hogar
+            {t('acceso.codigo')}
             <input
               className="campo text-sm mt-1 font-normal uppercase tracking-wider"
               value={codigo}
@@ -131,7 +133,7 @@ export function PantallaAcceso() {
         )}
 
         <label className="text-xs font-bold text-on-surface-variant">
-          Tu nombre
+          {t('acceso.tuNombre')}
           <input
             className="campo text-sm mt-1 font-normal"
             value={nombreUsuario}
@@ -141,13 +143,13 @@ export function PantallaAcceso() {
         </label>
 
         <label className="text-xs font-bold text-on-surface-variant">
-          PIN del hogar (opcional)
+          {t('acceso.pin')}
           <input
             className="campo text-sm mt-1 font-normal"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
             inputMode="numeric"
-            placeholder="4–8 dígitos"
+            placeholder="4–8"
             maxLength={8}
           />
         </label>
@@ -160,7 +162,7 @@ export function PantallaAcceso() {
               onChange={(e) => setConEjemplo(e.target.checked)}
               className="accent-primary"
             />
-            Empezar con recetas de ejemplo
+            {t('acceso.conEjemplos')}
           </label>
         )}
 
@@ -175,7 +177,11 @@ export function PantallaAcceso() {
           className="btn-primario disabled:opacity-40"
         >
           <Icono nombre={pestaña === 'crear' ? 'home' : 'login'} />
-          {cargando ? 'Conectando…' : pestaña === 'crear' ? 'Crear y entrar' : 'Entrar al hogar'}
+          {cargando
+            ? t('comun.cargar')
+            : pestaña === 'crear'
+              ? t('acceso.crearEntrar')
+              : t('acceso.entrar')}
         </button>
       </div>
 
@@ -184,7 +190,7 @@ export function PantallaAcceso() {
         onClick={() => elegirLocal()}
         className="cursor-pointer mt-6 w-full text-sm text-on-surface-variant font-semibold hover:text-primary underline"
       >
-        Usar solo en este dispositivo (sin nube)
+        {t('acceso.soloLocal')}
       </button>
 
       <p className="text-xs text-on-surface-variant text-center mt-4 px-2">

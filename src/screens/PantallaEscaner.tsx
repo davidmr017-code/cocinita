@@ -7,9 +7,11 @@ import { useAppStore } from '../store/useAppStore';
 import { EscannerCamara } from '../components/EscannerCamara';
 import { Icono } from '../components/Icono';
 import { ControlCantidad } from '../components/ControlCantidad';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 
 export function PantallaEscaner() {
+  const { t } = useTraduccion();
   const navegar = useNavigate();
   const registrarProductoEscaneado = useAppStore((s) => s.registrarProductoEscaneado);
 
@@ -92,8 +94,8 @@ export function PantallaEscaner() {
   return (
     <div className="max-w-md mx-auto">
       <EncabezadoPagina
-        titulo="Escanear producto"
-        subtitulo="Apunta al código de barras y lo guardamos en tu despensa."
+        titulo={t('escaner.titulo')}
+        subtitulo={t('escaner.subtitulo')}
       />
 
       <EscannerCamara onCodigoLeido={buscarPorCodigo} pausado={producto !== null} />

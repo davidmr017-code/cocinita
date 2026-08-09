@@ -10,6 +10,7 @@ import {
   iniciales,
   PREFERENCIAS,
 } from '../services/perfil';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
@@ -223,6 +224,7 @@ function EditorMiembro({
  * PERFIL DEL HOGAR — alérgenos, preferencias y miembros de la familia.
  */
 export function PantallaPerfil() {
+  const { t } = useTraduccion();
   const perfil = useAppStore((s) => s.perfil);
   const actualizarNombreHogar = useAppStore((s) => s.actualizarNombreHogar);
   const anadirMiembro = useAppStore((s) => s.anadirMiembro);
@@ -244,8 +246,8 @@ export function PantallaPerfil() {
   return (
     <div className="max-w-xl mx-auto">
       <EncabezadoPagina
-        titulo="Perfil del hogar"
-        subtitulo="Alérgenos, preferencias y gustos de cada persona en casa."
+        titulo={t('perfil.titulo')}
+        subtitulo={t('perfil.subtitulo')}
       />
 
       <section className="tarjeta p-4 mb-5">
