@@ -45,6 +45,19 @@ export default defineConfig(({ command }) => ({
           'User-Agent': 'Cocinita/1.0 (dev-proxy; pantry-recipe-app)',
         },
       },
+      // API familiar (Postgres / Railway) en desarrollo local
+      '/api/auth': {
+        target: 'http://127.0.0.1:3080',
+        changeOrigin: true,
+      },
+      '/api/state': {
+        target: 'http://127.0.0.1:3080',
+        changeOrigin: true,
+      },
+      '/api/hogar': {
+        target: 'http://127.0.0.1:3080',
+        changeOrigin: true,
+      },
     },
   },
 }))

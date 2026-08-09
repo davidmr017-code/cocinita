@@ -13,14 +13,53 @@ npm run dev      # https://localhost:5173  (HTTPS necesario para la cámara en m
 npm run build    # compilación de producción
 ```
 
-## Despliegue en Vercel
+## Hogar familiar (Postgres en Railway)
 
-1. Sube este repo a GitHub.
-2. En [vercel.com](https://vercel.com) → **Add New Project** → importa el repositorio.
-3. Framework: **Vite** (detectado automático). Build: `npm run build`, Output: `dist`.
-4. Deploy. El archivo `vercel.json` ya incluye:
-   - rewrite SPA (`index.html`) para React Router
-   - proxy `/api/openfoodfacts` → Open Food Facts (escáner sin CORS)
+Toda la familia comparte la misma despensa, recetas, lista y menú. El frontend
+sigue en Vercel; la API + Postgres viven en Railway.
+
+### 1. Postgres + API en Railway
+
+1. En [railway.app](https://railway.app) → **New Project** → **Add PostgreSQL**.
+2. **Add Service** → **GitHub Repo** → este repositorio.
+3. En el servicio Node: **Settings → Root Directory** = `server`.
+4. Variables del servicio API (Variables):
+
+| Variable | Valor |
+|----------|--------|
+| `DATABASE_URL` | (referencia a la de Postgres; Railway la inyecta o usa `${{Postgres.DATABASE_URL}}`) |
+| `DATABASE_SSL` | `true` |
+| `JWT_SECRET` | una cadena larga aleatoria |
+| `CORS_ORIGINS` | `https://tu-app.vercel.app` (y `http://localhost:5173` si pruebas en local) |
+| `PORT` | lo asigna Railway solo; no hace falta fijarlo |
+
+5. Deploy. Comprueba `https://tu-api.up.railway.app/health` → `{ ok: true }`.
+
+El esquema (`hogares`, `usuarios`, `estados_hogar`) se crea solo al arrancar.
+
+### 2. Frontend en Vercel
+
+1. Importa el repo en Vercel (framework Vite, output `dist`).
+2. Añade variable de entorno:
+
+| Variable | Valor |
+|----------|--------|
+| `VITE_API_URL` | `https://tu-api.up.railway.app` (sin barra final) |
+
+3. Redeploy. Al abrir la app verás **Crear hogar** / **Unirme**.
+4. Comparte el código `COCI-XXXX` (Ajustes) con la familia; el PIN es opcional.
+
+### Desarrollo local con API
+
+```bash
+# Terminal 1 — Postgres local o DATABASE_URL de Railway
+cp server/.env.example server/.env   # edita DATABASE_URL y JWT_SECRET
+npm --prefix server install
+npm run dev:full                     # Vite (:5173) + API (:3080)
+```
+
+Sin `VITE_API_URL`, Vite hace proxy de `/api/auth`, `/api/state` y `/api/hogar`
+hacia `localhost:3080`. Open Food Facts sigue en `/api/openfoodfacts`.
 
 ### Abrir desde el móvil (escáner incluido)
 
@@ -36,11 +75,12 @@ La cámara **solo funciona con HTTPS** (no con `http://192.168.x.x`). El servido
 |------|-----------|---------|
 | UI | **React 19 + TypeScript + Vite** | Ecosistema maduro, tipado estricto, arranque instantáneo |
 | Estilos | **Tailwind CSS v4** | El diseño Stitch ya está expresado en tokens Tailwind; se trasladaron tal cual a `@theme` |
-| Estado/Datos | **Zustand + persist** | Store minimalista (~1 KB) que actúa de repositorio local; los datos sobreviven al recargar |
+| Estado/Datos | **Zustand + persist** | Cache local; en modo familia se sincroniza con la API |
+| Sync familiar | **Express + Postgres (Railway)** | Un hogar, código `COCI-XXXX`, estado JSONB versionado |
 | Rutas | **React Router 7** | Navegación por pestañas + detalle |
 | Datos externos | **Open Food Facts API** | Ingredientes de productos escaneados, sin clave de API |
+| Frontend prod | **Vercel** | SPA + proxy Open Food Facts |
 | Futuro móvil nativo | **Capacitor + SQLite** | El mismo código React se empaqueta para iOS/Android |
-| Futuro social/sync | **Supabase (Postgres + Auth + Realtime)** | El esquema de dominio es relacional y migra 1:1 |
 
 ## Estructura (SOLID por capas)
 

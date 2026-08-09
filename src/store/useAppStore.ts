@@ -125,7 +125,8 @@ export interface DatosBackup {
   perfil?: PerfilHogar;
 }
 
-const DATOS_SEED = {
+/** Estado de ejemplo (también se usa al crear un hogar en la nube). */
+export const DATOS_SEED = {
   ingredientes: INGREDIENTES_SEED,
   recetas: RECETAS_SEED,
   despensa: DESPENSA_SEED,

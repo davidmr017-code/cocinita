@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host",
     "dev:local": "vite",
+    "dev:api": "npm --prefix server run dev",
+    "dev:full": "concurrently -k -n web,api \"vite --host\" \"npm --prefix server run dev\"",
     "dev:stop": "lsof -t -i :5173 | xargs kill 2>/dev/null || true",
     "dev:mobile": "npm run dev:stop && concurrently -k -n vite,tunnel \"vite --host\" \"sleep 5 && npx --yes cloudflared tunnel --url https://127.0.0.1:5173\"",
     "build": "tsc -b && vite build",

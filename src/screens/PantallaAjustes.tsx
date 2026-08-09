@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 
 import { aFechaISO } from '../domain/utilidades';
 import { type DatosBackup, useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { forzarSync } from '../store/sync';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
@@ -37,9 +39,16 @@ export function PantallaAjustes() {
   const estado = useAppStore();
   const importarDatos = useAppStore((s) => s.importarDatos);
   const restablecerDatos = useAppStore((s) => s.restablecerDatos);
+  const modo = useAuthStore((s) => s.modo);
+  const hogar = useAuthStore((s) => s.hogar);
+  const usuario = useAuthStore((s) => s.usuario);
+  const ultimoSync = useAuthStore((s) => s.ultimoSync);
+  const sincronizando = useAuthStore((s) => s.sincronizando);
+  const cerrarSesion = useAuthStore((s) => s.cerrarSesion);
   const inputRef = useRef<HTMLInputElement>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
 
   const mostrarAviso = (texto: string) => {
     setError(null);
@@ -125,12 +134,107 @@ export function PantallaAjustes() {
     mostrarAviso('Datos de ejemplo restaurados');
   };
 
+  const copiarCodigo = async () => {
+    if (!hogar?.codigo) return;
+    try {
+      await navigator.clipboard.writeText(hogar.codigo);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      setError('No se pudo copiar el código');
+    }
+  };
+
+  const salirDelHogar = () => {
+    if (
+      !confirm(
+        'Saldrás del hogar familiar en este dispositivo. Los datos en la nube no se borran. ¿Continuar?',
+      )
+    ) {
+      return;
+    }
+    cerrarSesion();
+  };
+
   return (
     <div className="max-w-lg mx-auto">
       <EncabezadoPagina
         titulo="Ajustes"
-        subtitulo="Copia de seguridad y datos locales de Cocinita."
+        subtitulo={
+          modo === 'familia'
+            ? 'Hogar compartido, sincronización y copias de seguridad.'
+            : 'Copia de seguridad y datos locales de Cocinita.'
+        }
       />
+
+      {modo === 'familia' && hogar && usuario && (
+        <section className="tarjeta p-4 mb-4 flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+              <Icono nombre="cloud_sync" className="text-primary text-xl" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-base">{hogar.nombre}</h3>
+              <p className="text-sm text-on-surface-variant mt-0.5">
+                Entraste como <span className="font-semibold text-on-surface">{usuario.nombre}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-surface-container px-3 py-3 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
+                Código del hogar
+              </p>
+              <p className="text-xl font-bold tracking-widest text-primary">{hogar.codigo}</p>
+            </div>
+            <button type="button" onClick={() => void copiarCodigo()} className="btn-secundario">
+              <Icono nombre={copiado ? 'check' : 'content_copy'} />
+              {copiado ? 'Copiado' : 'Copiar'}
+            </button>
+          </div>
+
+          <p className="text-xs text-on-surface-variant">
+            {sincronizando
+              ? 'Sincronizando…'
+              : ultimoSync
+                ? `Última sync: ${new Date(ultimoSync).toLocaleString('es-ES')}`
+                : 'Los cambios se suben solos a la nube familiar.'}
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void forzarSync().then(() => mostrarAviso('Sincronizado'))}
+              className="btn-secundario"
+            >
+              <Icono nombre="sync" /> Sincronizar ahora
+            </button>
+            <button
+              type="button"
+              onClick={salirDelHogar}
+              className="cursor-pointer px-4 py-2.5 rounded-xl border border-error/40 text-sm font-semibold text-error hover:bg-error-container/40 transition-colors flex items-center gap-2"
+            >
+              <Icono nombre="logout" /> Salir del hogar
+            </button>
+          </div>
+        </section>
+      )}
+
+      {modo === 'local' && (
+        <section className="tarjeta p-4 mb-4">
+          <p className="text-sm text-on-surface-variant">
+            Estás en modo local (solo este dispositivo).{' '}
+            <button
+              type="button"
+              onClick={() => cerrarSesion()}
+              className="cursor-pointer text-primary font-semibold underline"
+            >
+              Conectar un hogar familiar
+            </button>
+          </p>
+        </section>
+      )}
 
       <Link
         to="/perfil"
@@ -215,8 +319,9 @@ export function PantallaAjustes() {
       </section>
 
       <p className="text-xs text-on-surface-variant text-center px-4">
-        Todo se guarda en este dispositivo (localStorage). Un backup te permite cambiar de móvil
-        o recuperar datos si borras el almacenamiento del navegador.
+        {modo === 'familia'
+          ? 'En modo familia los datos viven en Postgres (Railway) y también se cachean en este dispositivo.'
+          : 'En modo local todo se guarda en este dispositivo (localStorage). Un backup te permite cambiar de móvil.'}
       </p>
 
       {aviso && (
