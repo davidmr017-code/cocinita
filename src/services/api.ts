@@ -151,3 +151,33 @@ export async function pedirRecetasIA(
     body: JSON.stringify(payload),
   });
 }
+
+export type IngredienteFaltanteIA = {
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+};
+
+export type RespuestaChatChef = {
+  mensaje: string;
+  receta: RecetaIA | null;
+  faltantes: IngredienteFaltanteIA[];
+};
+
+export async function chatChefIA(
+  token: string,
+  payload: {
+    mensaje: string;
+    historial: { role: 'user' | 'assistant'; content: string }[];
+    despensa: { nombre: string; cantidad: number; unidad: string }[];
+    alergenos: string[];
+    preferencias: string[];
+    evitados: string[];
+  },
+) {
+  return pedir<RespuestaChatChef>('/api/ia/chat', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(payload),
+  });
+}

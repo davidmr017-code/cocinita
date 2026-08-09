@@ -15,7 +15,7 @@ import {
   incorporarUsuarioAlPerfil,
   perfilMiembroNuevo,
 } from './estado.js';
-import { generarRecetasIA, iaDisponible } from './ia.js';
+import { generarRecetasIA, chatChefIA, iaDisponible } from './ia.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3080;
@@ -431,6 +431,48 @@ app.post('/api/ia/recetas', middlewareAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(502).json({ error: err.message || 'No se pudieron generar recetas' });
+  }
+});
+
+/**
+ * Chat con el Chef IA: recetas a petición y faltantes vs despensa.
+ * Body: { mensaje, historial?, despensa, alergenos?, preferencias?, evitados? }
+ */
+app.post('/api/ia/chat', middlewareAuth, async (req, res) => {
+  try {
+    if (!iaDisponible()) {
+      return res.status(503).json({
+        error: 'La IA no está configurada (falta GROQ_API_KEY en el servidor)',
+      });
+    }
+
+    const mensaje = String(req.body?.mensaje || '').trim().slice(0, 500);
+    if (!mensaje) {
+      return res.status(400).json({ error: 'Escribe qué receta quieres o qué te apetece cocinar' });
+    }
+
+    const despensa = Array.isArray(req.body?.despensa) ? req.body.despensa.slice(0, 120) : [];
+    const historial = Array.isArray(req.body?.historial)
+      ? req.body.historial.slice(-10).filter((h) => h?.role && h?.content)
+      : [];
+
+    const resultado = await chatChefIA({
+      mensaje,
+      historial,
+      despensa: despensa.map((d) => ({
+        nombre: String(d?.nombre || '').slice(0, 80),
+        cantidad: Number(d?.cantidad) || 0,
+        unidad: String(d?.unidad || 'ud').slice(0, 6),
+      })),
+      alergenos: Array.isArray(req.body?.alergenos) ? req.body.alergenos.slice(0, 20).map(String) : [],
+      preferencias: Array.isArray(req.body?.preferencias) ? req.body.preferencias.slice(0, 20).map(String) : [],
+      evitados: Array.isArray(req.body?.evitados) ? req.body.evitados.slice(0, 30).map(String) : [],
+    });
+
+    res.json(resultado);
+  } catch (err) {
+    console.error(err);
+    res.status(502).json({ error: err.message || 'No se pudo responder' });
   }
 });
 

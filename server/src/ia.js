@@ -10,6 +10,34 @@ export function iaDisponible() {
   return Boolean(process.env.GROQ_API_KEY);
 }
 
+async function llamarGroq(messages, { temperature = 0.7, max_tokens = 4000 } = {}) {
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: MODELO,
+      temperature,
+      max_tokens,
+      response_format: { type: 'json_object' },
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    const cuerpo = await res.text().catch(() => '');
+    console.error('Groq error', res.status, cuerpo.slice(0, 500));
+    if (res.status === 401) throw new Error('Clave de Groq inválida');
+    if (res.status === 429) throw new Error('La IA está saturada, prueba en un minuto');
+    throw new Error('El servicio de IA no respondió');
+  }
+
+  const datos = await res.json();
+  return datos.choices?.[0]?.message?.content || '';
+}
+
 function construirPrompt({ despensa, alergenos, preferencias, evitados }) {
   const lineasDespensa = despensa
     .map((d) => `- ${d.nombre}: ${d.cantidad} ${d.unidad}`)
@@ -94,34 +122,14 @@ function normalizarReceta(r) {
 
 /** Llama a Groq y devuelve { recetas: [...] } ya validado. */
 export async function generarRecetasIA(payload) {
-  const res = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: MODELO,
-      temperature: 0.8,
-      max_tokens: 4000,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'Eres un chef español. Respondes solo JSON válido.' },
-        { role: 'user', content: construirPrompt(payload) },
-      ],
-    }),
-  });
+  const texto = await llamarGroq(
+    [
+      { role: 'system', content: 'Eres un chef español. Respondes solo JSON válido.' },
+      { role: 'user', content: construirPrompt(payload) },
+    ],
+    { temperature: 0.8 },
+  );
 
-  if (!res.ok) {
-    const cuerpo = await res.text().catch(() => '');
-    console.error('Groq error', res.status, cuerpo.slice(0, 500));
-    if (res.status === 401) throw new Error('Clave de Groq inválida');
-    if (res.status === 429) throw new Error('La IA está saturada, prueba en un minuto');
-    throw new Error('El servicio de IA no respondió');
-  }
-
-  const datos = await res.json();
-  const texto = datos.choices?.[0]?.message?.content || '';
   const json = extraerJson(texto);
 
   const recetas = (Array.isArray(json.recetas) ? json.recetas : [])
@@ -131,4 +139,105 @@ export async function generarRecetasIA(payload) {
 
   if (recetas.length === 0) throw new Error('La IA no propuso recetas válidas');
   return { recetas };
+}
+
+function construirContextoDespensa(despensa) {
+  const lineas = despensa
+    .map((d) => `- ${d.nombre}: ${d.cantidad} ${d.unidad}`)
+    .join('\n');
+  return lineas || '- (despensa vacía)';
+}
+
+function construirRestricciones({ alergenos, preferencias, evitados }) {
+  return [
+    alergenos?.length ? `Alérgenos a evitar SIEMPRE: ${alergenos.join(', ')}.` : '',
+    evitados?.length ? `Alimentos que la familia evita: ${evitados.join(', ')}.` : '',
+    preferencias?.length ? `Preferencias: ${preferencias.join(', ')}.` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function construirPromptChat({ despensa, alergenos, preferencias, evitados, mensaje }) {
+  const restricciones = construirRestricciones({ alergenos, preferencias, evitados });
+
+  return `Eres el chef de Cocinita, una app familiar española de cocina.
+
+DESPENSA ACTUAL (compara cada ingrediente de la receta con esta lista; marca enDespensa=true solo si hay cantidad suficiente):
+${construirContextoDespensa(despensa)}
+
+${restricciones ? `RESTRICCIONES DEL HOGAR:\n${restricciones}\n` : ''}
+Puedes asumir básicos (agua, sal, aceite, pimienta) como enDespensa=true.
+
+Petición del usuario: "${mensaje}"
+
+Responde en español. Si el usuario pide una receta concreta o pregunta qué le falta, incluye la receta completa.
+Si solo conversa o pregunta algo general, receta puede ser null.
+
+Responde SOLO con JSON válido, sin markdown:
+{
+  "mensaje": "respuesta conversacional breve (2-4 frases)",
+  "receta": null | {
+    "titulo": "string",
+    "descripcion": "string",
+    "raciones": 2,
+    "tiempoMin": 30,
+    "dificultad": "facil|media|dificil",
+    "etiquetas": ["casero"],
+    "ingredientes": [
+      { "nombre": "string", "cantidad": 200, "unidad": "g|kg|ml|l|ud|cda|cdta", "enDespensa": true }
+    ],
+    "pasos": [{ "titulo": "string", "descripcion": "string" }]
+  }
+}
+
+Para cada ingrediente de la receta, compara con la despensa: enDespensa=true si hay stock suficiente; false si falta o no hay.`;
+}
+
+/** Extrae ingredientes que hay que comprar a partir de una receta normalizada. */
+export function extraerFaltantes(receta) {
+  if (!receta?.ingredientes) return [];
+  return receta.ingredientes
+    .filter((i) => !i.enDespensa)
+    .map((i) => ({
+      nombre: i.nombre,
+      cantidad: i.cantidad,
+      unidad: i.unidad,
+    }));
+}
+
+/**
+ * Chat con el chef: recetas a petición y comparación con la despensa.
+ * historial: [{ role: 'user'|'assistant', content: string }]
+ */
+export async function chatChefIA(payload) {
+  const { mensaje, historial = [], despensa, alergenos, preferencias, evitados } = payload;
+
+  const mensajesGroq = [
+    {
+      role: 'system',
+      content:
+        'Eres un chef español amable en Cocinita. Respondes solo JSON válido. Comparas siempre con la despensa del usuario.',
+    },
+  ];
+
+  for (const h of historial.slice(-8)) {
+    if (h.role === 'user' || h.role === 'assistant') {
+      mensajesGroq.push({ role: h.role, content: String(h.content).slice(0, 800) });
+    }
+  }
+
+  mensajesGroq.push({
+    role: 'user',
+    content: construirPromptChat({ despensa, alergenos, preferencias, evitados, mensaje }),
+  });
+
+  const texto = await llamarGroq(mensajesGroq, { temperature: 0.75, max_tokens: 4500 });
+  const json = extraerJson(texto);
+
+  const mensajeRespuesta = String(json.mensaje || 'Aquí tienes.').slice(0, 1200);
+  const receta = json.receta ? normalizarReceta(json.receta) : null;
+  const faltantes = receta ? extraerFaltantes(receta) : [];
+
+  return { mensaje: mensajeRespuesta, receta, faltantes };
 }
