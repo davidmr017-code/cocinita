@@ -87,6 +87,8 @@ interface EstadoApp {
   fijarCantidad: (ingredienteId: string, cantidad: number) => void;
   /** Aplica de golpe varias propuestas de categoría (reorganizador). */
   aplicarCategorias: (cambios: { ingredienteId: string; categoria: CategoriaIngrediente }[]) => void;
+  /** Marca o desmarca un producto de la despensa como favorito. */
+  alternarFavoritoDespensa: (ingredienteId: string) => void;
 
   /* ----------------------------- Recetas ----------------------------- */
   guardarReceta: (receta: Receta) => void;
@@ -353,6 +355,13 @@ export const useAppStore = create<EstadoApp>()(
             ),
           };
         }),
+
+      alternarFavoritoDespensa: (ingredienteId) =>
+        set((estado) => ({
+          despensa: estado.despensa.map((i) =>
+            i.ingredienteId === ingredienteId ? { ...i, favorito: !i.favorito } : i,
+          ),
+        })),
 
       /* ============================= RECETAS ============================= */
 
@@ -633,7 +642,7 @@ export const useAppStore = create<EstadoApp>()(
     }),
     {
       name: 'cocinita-datos',
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const estado = persisted as Partial<EstadoApp>;
         if (version < 2 && Array.isArray(estado.despensa)) {
@@ -647,6 +656,12 @@ export const useAppStore = create<EstadoApp>()(
         }
         if (version < 4 && !Array.isArray(estado.gastos)) {
           estado.gastos = [];
+        }
+        if (version < 5 && Array.isArray(estado.despensa)) {
+          estado.despensa = estado.despensa.map((item) => ({
+            ...item,
+            favorito: item.favorito ?? false,
+          }));
         }
         return estado as EstadoApp;
       },
@@ -673,6 +688,16 @@ export function seleccionarCaducanPronto(despensa: ItemDespensa[]): ItemDespensa
     const estado = estadoCaducidad(i.caducidad);
     return estado === 'caducado' || estado === 'pronto';
   });
+}
+
+/** Ítems con stock disponible (cantidad > 0). */
+export function seleccionarDisponibles(despensa: ItemDespensa[]): ItemDespensa[] {
+  return despensa.filter((i) => i.cantidad > 0);
+}
+
+/** Ítems marcados como favoritos. */
+export function seleccionarFavoritos(despensa: ItemDespensa[]): ItemDespensa[] {
+  return despensa.filter((i) => i.favorito);
 }
 
 /** Fecha de hoy en formato YYYY-MM-DD (para el planificador). */

@@ -19,6 +19,8 @@ import { useTraduccion } from '../i18n/useTraduccion';
 import {
   seleccionarAgotados,
   seleccionarCaducanPronto,
+  seleccionarDisponibles,
+  seleccionarFavoritos,
   seleccionarPocoStock,
   useAppStore,
 } from '../store/useAppStore';
@@ -27,7 +29,7 @@ import { ControlCantidad } from '../components/ControlCantidad';
 import { Icono } from '../components/Icono';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 
-type FiltroDespensa = 'todos' | 'pocoStock' | 'agotados' | 'caducan' | 'nuevos';
+type FiltroDespensa = 'todos' | 'pocoStock' | 'agotados' | 'caducan' | 'nuevos' | 'favoritos';
 type Vista = 'inventario' | 'historial';
 
 /** Horas durante las que un producto cuenta como "recién añadido". */
@@ -267,6 +269,7 @@ export function PantallaDespensa() {
   const actualizarIngrediente = useAppStore((s) => s.actualizarIngrediente);
   const fijarCantidad = useAppStore((s) => s.fijarCantidad);
   const aplicarCategorias = useAppStore((s) => s.aplicarCategorias);
+  const alternarFavoritoDespensa = useAppStore((s) => s.alternarFavoritoDespensa);
 
   const [vista, setVista] = useState<Vista>('inventario');
   const [filtro, setFiltro] = useState<FiltroDespensa>('todos');
@@ -280,6 +283,8 @@ export function PantallaDespensa() {
   const pocoStock = seleccionarPocoStock(despensa);
   const agotados = seleccionarAgotados(despensa);
   const caducan = seleccionarCaducanPronto(despensa);
+  const disponibles = useMemo(() => seleccionarDisponibles(despensa), [despensa]);
+  const favoritos = useMemo(() => seleccionarFavoritos(despensa), [despensa]);
   const nuevos = useMemo(() => despensa.filter(esRecienAnadido), [despensa]);
 
   const grupos = useMemo(() => {
@@ -292,7 +297,9 @@ export function PantallaDespensa() {
             ? caducan
             : filtro === 'nuevos'
               ? nuevos
-              : despensa;
+              : filtro === 'favoritos'
+                ? favoritos
+                : despensa;
 
     const q = normalizar(busqueda);
     if (q) {
@@ -311,7 +318,7 @@ export function PantallaDespensa() {
       porCategoria.set(categoria, [...(porCategoria.get(categoria) ?? []), item]);
     }
     return porCategoria;
-  }, [despensa, filtro, busqueda, fichas, pocoStock, agotados, caducan, nuevos]);
+  }, [despensa, filtro, busqueda, fichas, pocoStock, agotados, caducan, nuevos, favoritos]);
 
   const abrirReorganizador = () => {
     const idsEnDespensa = new Set(despensa.map((i) => i.ingredienteId));
@@ -346,6 +353,16 @@ export function PantallaDespensa() {
       <EncabezadoPagina
         titulo={t('despensa.titulo')}
         subtitulo={t('despensa.subtitulo')}
+        accion={
+          vista === 'inventario' ? (
+            <div className="text-right">
+              <p className="text-3xl font-serif font-bold text-primary tabular-nums leading-none">
+                {disponibles.length}
+              </p>
+              <p className="text-xs text-on-surface-variant mt-1">{t('despensa.disponibles')}</p>
+            </div>
+          ) : undefined
+        }
       />
 
       <div className="flex gap-2 mb-4">
@@ -383,6 +400,9 @@ export function PantallaDespensa() {
           <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar -mx-4 px-4">
             <Chip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>
               {t('despensa.todo')}
+            </Chip>
+            <Chip activo={filtro === 'favoritos'} onClick={() => setFiltro('favoritos')}>
+              {t('despensa.favoritos')} ({favoritos.length})
             </Chip>
             <Chip activo={filtro === 'nuevos'} onClick={() => setFiltro('nuevos')}>
               {t('despensa.recien')} ({nuevos.length})
@@ -467,7 +487,25 @@ export function PantallaDespensa() {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <h4 className="text-sm font-semibold truncate">{ficha.nombre}</h4>
+                              <div className="flex items-center gap-1 min-w-0">
+                                <h4 className="text-sm font-semibold truncate">{ficha.nombre}</h4>
+                                <button
+                                  type="button"
+                                  onClick={() => alternarFavoritoDespensa(item.ingredienteId)}
+                                  aria-label={
+                                    item.favorito
+                                      ? t('despensa.quitarFavorito')
+                                      : t('despensa.marcarFavorito')
+                                  }
+                                  className="cursor-pointer shrink-0 w-7 h-7 rounded-lg flex items-center justify-center active:scale-95 transition-transform hover:bg-surface-container-low"
+                                >
+                                  <Icono
+                                    nombre="favorite"
+                                    relleno={!!item.favorito}
+                                    className={`text-base ${item.favorito ? 'text-secondary' : 'text-on-surface-variant/60'}`}
+                                  />
+                                </button>
+                              </div>
                               {(ficha.marca || ficha.supermercado) && (
                                 <p className="text-[11px] text-on-surface-variant truncate">
                                   {[ficha.marca, ficha.supermercado].filter(Boolean).join(' · ')}

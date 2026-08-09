@@ -104,6 +104,8 @@ export interface ItemDespensa {
   caducidad?: string;
   /** Cuándo entró por primera vez en la despensa (ISO); marca "recién añadido". */
   anadidoEn?: string;
+  /** Marcado como favorito para acceso rápido. */
+  favorito?: boolean;
 }
 
 /** Motivo de un cambio de stock: sirve como historial y auditoría. */

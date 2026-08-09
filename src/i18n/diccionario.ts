@@ -108,6 +108,10 @@ const es = {
     movCocinado: 'Cocinado',
     movAjuste: 'Ajuste',
     sinMovimientos: 'Aún no hay movimientos.',
+    disponibles: 'productos disponibles',
+    favoritos: 'Favoritos',
+    quitarFavorito: 'Quitar de favoritos',
+    marcarFavorito: 'Marcar como favorito',
   },
   compra: {
     titulo: 'Lista de la compra',
@@ -372,6 +376,10 @@ const tr: Diccionario = {
     movCocinado: 'Pişirme',
     movAjuste: 'Düzeltme',
     sinMovimientos: 'Henüz hareket yok.',
+    disponibles: 'ürün mevcut',
+    favoritos: 'Favoriler',
+    quitarFavorito: 'Favorilerden çıkar',
+    marcarFavorito: 'Favori olarak işaretle',
   },
   compra: {
     titulo: 'Alışveriş listesi',
