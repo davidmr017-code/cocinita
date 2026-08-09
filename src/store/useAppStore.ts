@@ -78,6 +78,15 @@ interface EstadoApp {
   fijarStockMinimo: (ingredienteId: string, stockMinimo: number) => void;
   /** Quita el producto de la despensa (el catálogo se mantiene por si hay recetas). */
   eliminarDeDespensa: (ingredienteId: string) => void;
+  /** Edita la ficha del producto: nombre, marca, supermercado, unidad, categoría. */
+  actualizarIngrediente: (
+    ingredienteId: string,
+    cambios: Partial<Pick<Ingrediente, 'nombre' | 'marca' | 'supermercado' | 'unidadBase' | 'categoria'>>,
+  ) => void;
+  /** Fija la cantidad exacta en despensa (registra el ajuste en el historial). */
+  fijarCantidad: (ingredienteId: string, cantidad: number) => void;
+  /** Aplica de golpe varias propuestas de categoría (reorganizador). */
+  aplicarCategorias: (cambios: { ingredienteId: string; categoria: CategoriaIngrediente }[]) => void;
 
   /* ----------------------------- Recetas ----------------------------- */
   guardarReceta: (receta: Receta) => void;
@@ -179,7 +188,15 @@ export const useAppStore = create<EstadoApp>()(
                   ? { ...item, cantidad: Math.max(0, item.cantidad + delta) }
                   : item,
               )
-            : [...estado.despensa, { ingredienteId, cantidad: Math.max(0, delta), stockMinimo: 1 }];
+            : [
+                ...estado.despensa,
+                {
+                  ingredienteId,
+                  cantidad: Math.max(0, delta),
+                  stockMinimo: 1,
+                  anadidoEn: new Date().toISOString(),
+                },
+              ];
 
           const movimiento: MovimientoStock = {
             id: nuevoId(),
@@ -297,6 +314,43 @@ export const useAppStore = create<EstadoApp>()(
           return {
             despensa: estado.despensa.filter((i) => i.ingredienteId !== ingredienteId),
             movimientos: [movimiento, ...estado.movimientos],
+          };
+        }),
+
+      actualizarIngrediente: (ingredienteId, cambios) =>
+        set((estado) => ({
+          ingredientes: estado.ingredientes.map((i) =>
+            i.id === ingredienteId
+              ? {
+                  ...i,
+                  ...cambios,
+                  nombre: cambios.nombre?.trim() || i.nombre,
+                  marca: cambios.marca !== undefined ? cambios.marca.trim() || undefined : i.marca,
+                  supermercado:
+                    cambios.supermercado !== undefined
+                      ? cambios.supermercado.trim() || undefined
+                      : i.supermercado,
+                }
+              : i,
+          ),
+        })),
+
+      fijarCantidad: (ingredienteId, cantidad) => {
+        const item = get().despensa.find((i) => i.ingredienteId === ingredienteId);
+        const objetivo = Math.max(0, cantidad);
+        const delta = objetivo - (item?.cantidad ?? 0);
+        if (delta === 0) return;
+        get().ajustarStock(ingredienteId, delta, 'ajuste', 'Cantidad corregida a mano');
+      },
+
+      aplicarCategorias: (cambios) =>
+        set((estado) => {
+          if (cambios.length === 0) return estado;
+          const mapa = new Map(cambios.map((c) => [c.ingredienteId, c.categoria]));
+          return {
+            ingredientes: estado.ingredientes.map((i) =>
+              mapa.has(i.id) ? { ...i, categoria: mapa.get(i.id)! } : i,
+            ),
           };
         }),
 

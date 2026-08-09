@@ -3,13 +3,18 @@ import { Link } from 'react-router-dom';
 
 import type {
   CategoriaIngrediente,
+  Ingrediente,
   ItemDespensa,
   MovimientoStock,
   Unidad,
   UnidadBase,
 } from '../domain/tipos';
 import { formatearCantidad, pasoRapido } from '../domain/unidades';
-import { estadoCaducidad, etiquetaCaducidad, tiempoRelativo } from '../domain/utilidades';
+import { estadoCaducidad, etiquetaCaducidad, normalizar, tiempoRelativo } from '../domain/utilidades';
+import {
+  reorganizarCategorias,
+  type PropuestaCategoria,
+} from '../services/categoriasProducto';
 import {
   seleccionarAgotados,
   seleccionarCaducanPronto,
@@ -21,8 +26,17 @@ import { ControlCantidad } from '../components/ControlCantidad';
 import { Icono } from '../components/Icono';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 
-type FiltroDespensa = 'todos' | 'pocoStock' | 'agotados' | 'caducan';
+type FiltroDespensa = 'todos' | 'pocoStock' | 'agotados' | 'caducan' | 'nuevos';
 type Vista = 'inventario' | 'historial';
+
+/** Horas durante las que un producto cuenta como "recién añadido". */
+const HORAS_NUEVO = 48;
+
+function esRecienAnadido(item: ItemDespensa): boolean {
+  if (!item.anadidoEn) return false;
+  const ms = Date.now() - new Date(item.anadidoEn).getTime();
+  return ms >= 0 && ms < HORAS_NUEVO * 3600_000;
+}
 
 const CATEGORIAS: Record<CategoriaIngrediente, { etiqueta: string; icono: string }> = {
   verduras: { etiqueta: 'Verduras', icono: 'eco' },
@@ -58,21 +72,127 @@ function BadgeCaducidad({ caducidad }: { caducidad?: string }) {
 
 function DetalleItem({
   item,
-  unidadBase,
+  ficha,
   onCaducidad,
   onStockMinimo,
+  onGuardarFicha,
+  onCantidad,
   onEliminar,
 }: {
   item: ItemDespensa;
-  unidadBase: UnidadBase;
+  ficha: Ingrediente;
   onCaducidad: (fecha: string | undefined) => void;
   onStockMinimo: (valor: number) => void;
+  onGuardarFicha: (cambios: {
+    nombre: string;
+    marca: string;
+    supermercado: string;
+    unidadBase: UnidadBase;
+  }) => void;
+  onCantidad: (cantidad: number) => void;
   onEliminar: () => void;
 }) {
+  const unidadBase = ficha.unidadBase;
   const paso = pasoRapido(unidadBase);
+
+  const [nombre, setNombre] = useState(ficha.nombre);
+  const [marca, setMarca] = useState(ficha.marca ?? '');
+  const [supermercado, setSupermercado] = useState(ficha.supermercado ?? '');
+  const [unidad, setUnidad] = useState<UnidadBase>(unidadBase);
+  const [cantidadTexto, setCantidadTexto] = useState(String(item.cantidad));
+  const [guardado, setGuardado] = useState(false);
+
+  const hayCambiosFicha =
+    nombre.trim() !== ficha.nombre ||
+    marca.trim() !== (ficha.marca ?? '') ||
+    supermercado.trim() !== (ficha.supermercado ?? '') ||
+    unidad !== unidadBase;
+
+  const cantidadNum = Number(cantidadTexto.replace(',', '.'));
+  const hayCambioCantidad =
+    Number.isFinite(cantidadNum) && cantidadNum >= 0 && cantidadNum !== item.cantidad;
+
+  const guardar = () => {
+    if (hayCambiosFicha) {
+      onGuardarFicha({
+        nombre: nombre.trim() || ficha.nombre,
+        marca: marca.trim(),
+        supermercado: supermercado.trim(),
+        unidadBase: unidad,
+      });
+    }
+    if (hayCambioCantidad) onCantidad(cantidadNum);
+    setGuardado(true);
+    setTimeout(() => setGuardado(false), 1800);
+  };
+
   return (
     <div className="mt-2 pt-2 border-t border-outline-variant/50 flex flex-col gap-2">
-      <label className="flex items-center justify-between gap-2 text-xs text-on-surface-variant">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
+        Editar producto
+      </p>
+      <label className="text-xs font-semibold text-on-surface-variant">
+        Nombre
+        <input
+          className="campo text-sm mt-1 font-normal"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+        />
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs font-semibold text-on-surface-variant">
+          Marca
+          <input
+            className="campo text-sm mt-1 font-normal"
+            value={marca}
+            onChange={(e) => setMarca(e.target.value)}
+            placeholder="Hacendado…"
+          />
+        </label>
+        <label className="text-xs font-semibold text-on-surface-variant">
+          Supermercado
+          <input
+            className="campo text-sm mt-1 font-normal"
+            value={supermercado}
+            onChange={(e) => setSupermercado(e.target.value)}
+            placeholder="Mercadona…"
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs font-semibold text-on-surface-variant">
+          Unidad
+          <select
+            className="campo text-sm mt-1 font-normal"
+            value={unidad}
+            onChange={(e) => setUnidad(e.target.value as UnidadBase)}
+          >
+            <option value="ud">Unidades (ud)</option>
+            <option value="g">Peso (gramos)</option>
+            <option value="ml">Volumen (ml)</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-on-surface-variant">
+          Cantidad exacta
+          <input
+            className="campo text-sm mt-1 font-normal"
+            inputMode="decimal"
+            value={cantidadTexto}
+            onChange={(e) => setCantidadTexto(e.target.value)}
+          />
+        </label>
+      </div>
+      <button
+        type="button"
+        onClick={guardar}
+        disabled={!hayCambiosFicha && !hayCambioCantidad}
+        className="btn-primario py-2 text-sm justify-center disabled:opacity-40"
+      >
+        <Icono nombre={guardado ? 'check' : 'save'} className="text-base" />
+        {guardado ? 'Guardado' : 'Guardar cambios'}
+      </button>
+
+      <label className="flex items-center justify-between gap-2 text-xs text-on-surface-variant mt-1">
         <span className="flex items-center gap-1 shrink-0">
           <Icono nombre="event" className="text-sm" /> Caducidad
         </span>
@@ -124,26 +244,46 @@ export function PantallaDespensa() {
   const fijarCaducidad = useAppStore((s) => s.fijarCaducidad);
   const fijarStockMinimo = useAppStore((s) => s.fijarStockMinimo);
   const eliminarDeDespensa = useAppStore((s) => s.eliminarDeDespensa);
+  const actualizarIngrediente = useAppStore((s) => s.actualizarIngrediente);
+  const fijarCantidad = useAppStore((s) => s.fijarCantidad);
+  const aplicarCategorias = useAppStore((s) => s.aplicarCategorias);
 
   const [vista, setVista] = useState<Vista>('inventario');
   const [filtro, setFiltro] = useState<FiltroDespensa>('todos');
+  const [busqueda, setBusqueda] = useState('');
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [propuestas, setPropuestas] = useState<PropuestaCategoria[] | null>(null);
+  const [avisoReorg, setAvisoReorg] = useState<string | null>(null);
 
   const fichas = useMemo(() => new Map(catalogo.map((i) => [i.id, i])), [catalogo]);
   const pocoStock = seleccionarPocoStock(despensa);
   const agotados = seleccionarAgotados(despensa);
   const caducan = seleccionarCaducanPronto(despensa);
+  const nuevos = useMemo(() => despensa.filter(esRecienAnadido), [despensa]);
 
   const grupos = useMemo(() => {
-    const filtrados =
+    let filtrados =
       filtro === 'pocoStock'
         ? pocoStock
         : filtro === 'agotados'
           ? agotados
           : filtro === 'caducan'
             ? caducan
-            : despensa;
+            : filtro === 'nuevos'
+              ? nuevos
+              : despensa;
+
+    const q = normalizar(busqueda);
+    if (q) {
+      filtrados = filtrados.filter((item) => {
+        const ficha = fichas.get(item.ingredienteId);
+        if (!ficha) return false;
+        return normalizar(
+          `${ficha.nombre} ${ficha.marca ?? ''} ${ficha.supermercado ?? ''}`,
+        ).includes(q);
+      });
+    }
 
     const porCategoria = new Map<CategoriaIngrediente, typeof filtrados>();
     for (const item of filtrados) {
@@ -151,7 +291,28 @@ export function PantallaDespensa() {
       porCategoria.set(categoria, [...(porCategoria.get(categoria) ?? []), item]);
     }
     return porCategoria;
-  }, [despensa, filtro, fichas, pocoStock, agotados, caducan]);
+  }, [despensa, filtro, busqueda, fichas, pocoStock, agotados, caducan, nuevos]);
+
+  const abrirReorganizador = () => {
+    const idsEnDespensa = new Set(despensa.map((i) => i.ingredienteId));
+    const enDespensa = catalogo.filter((i) => idsEnDespensa.has(i.id));
+    const props = reorganizarCategorias(enDespensa);
+    setPropuestas(props);
+    if (props.length === 0) {
+      setAvisoReorg('Todo está ya en su categoría correcta.');
+      setTimeout(() => setAvisoReorg(null), 2800);
+      setPropuestas(null);
+    }
+  };
+
+  const aceptarPropuestas = (lista: PropuestaCategoria[]) => {
+    aplicarCategorias(
+      lista.map((p) => ({ ingredienteId: p.ingredienteId, categoria: p.categoriaPropuesta })),
+    );
+    setPropuestas(null);
+    setAvisoReorg(`${lista.length} producto${lista.length === 1 ? '' : 's'} recolocado${lista.length === 1 ? '' : 's'}`);
+    setTimeout(() => setAvisoReorg(null), 2800);
+  };
 
   const anadirNuevo = () => {
     if (!nuevoNombre.trim()) return;
@@ -178,9 +339,33 @@ export function PantallaDespensa() {
 
       {vista === 'inventario' ? (
         <>
+          <label className="campo-busqueda mb-4 flex items-center gap-2">
+            <Icono nombre="search" className="text-on-surface-variant shrink-0" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre, marca o súper…"
+              className="bg-transparent outline-none w-full text-on-surface placeholder:text-on-surface-variant/80"
+            />
+            {busqueda && (
+              <button
+                type="button"
+                onClick={() => setBusqueda('')}
+                aria-label="Limpiar búsqueda"
+                className="cursor-pointer text-on-surface-variant"
+              >
+                <Icono nombre="close" className="text-lg" />
+              </button>
+            )}
+          </label>
+
           <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar -mx-4 px-4">
             <Chip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>
               Todo
+            </Chip>
+            <Chip activo={filtro === 'nuevos'} onClick={() => setFiltro('nuevos')}>
+              Recién añadidos ({nuevos.length})
             </Chip>
             <Chip activo={filtro === 'pocoStock'} onClick={() => setFiltro('pocoStock')}>
               Queda poco ({pocoStock.length})
@@ -193,7 +378,7 @@ export function PantallaDespensa() {
             </Chip>
           </div>
 
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-4">
             <input
               value={nuevoNombre}
               onChange={(e) => setNuevoNombre(e.target.value)}
@@ -210,6 +395,23 @@ export function PantallaDespensa() {
               <Icono nombre="add" />
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={abrirReorganizador}
+            className="cursor-pointer mb-6 w-full tarjeta p-3 flex items-center gap-3 hover:border-primary-fixed-dim transition-colors text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+              <Icono nombre="auto_fix_high" className="text-primary text-xl" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm">Reorganizar categorías</h3>
+              <p className="text-xs text-on-surface-variant">
+                El asistente revisa la despensa y propone dónde va cada producto
+              </p>
+            </div>
+            <Icono nombre="chevron_right" className="text-on-surface-variant" />
+          </button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             {[...grupos.entries()].map(([categoria, items]) => (
@@ -246,7 +448,17 @@ export function PantallaDespensa() {
                             </div>
                             <div className="min-w-0">
                               <h4 className="text-sm font-semibold truncate">{ficha.nombre}</h4>
+                              {(ficha.marca || ficha.supermercado) && (
+                                <p className="text-[11px] text-on-surface-variant truncate">
+                                  {[ficha.marca, ficha.supermercado].filter(Boolean).join(' · ')}
+                                </p>
+                              )}
                               <div className="flex flex-wrap gap-1 mt-0.5">
+                                {esRecienAnadido(item) && (
+                                  <span className="etiqueta bg-primary-fixed text-on-primary-fixed-variant">
+                                    Nuevo
+                                  </span>
+                                )}
                                 {agotado && (
                                   <span className="etiqueta etiqueta-alerta">Agotado</span>
                                 )}
@@ -256,7 +468,7 @@ export function PantallaDespensa() {
                                   </span>
                                 )}
                                 <BadgeCaducidad caducidad={item.caducidad} />
-                                {!agotado && !bajo && !etiquetaCaducidad(item.caducidad) && (
+                                {!agotado && !bajo && !etiquetaCaducidad(item.caducidad) && !esRecienAnadido(item) && (
                                   <p className="text-xs text-on-surface-variant">En stock</p>
                                 )}
                               </div>
@@ -304,10 +516,15 @@ export function PantallaDespensa() {
 
                         {abierto && (
                           <DetalleItem
+                            key={`${ficha.id}-${ficha.nombre}-${ficha.unidadBase}`}
                             item={item}
-                            unidadBase={ficha.unidadBase}
+                            ficha={ficha}
                             onCaducidad={(fecha) => fijarCaducidad(item.ingredienteId, fecha)}
                             onStockMinimo={(valor) => fijarStockMinimo(item.ingredienteId, valor)}
+                            onGuardarFicha={(cambios) =>
+                              actualizarIngrediente(item.ingredienteId, cambios)
+                            }
+                            onCantidad={(cantidad) => fijarCantidad(item.ingredienteId, cantidad)}
                             onEliminar={() => {
                               if (
                                 confirm(
@@ -380,6 +597,90 @@ export function PantallaDespensa() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {propuestas && propuestas.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6"
+          onClick={() => setPropuestas(null)}
+        >
+          <div
+            className="bg-surface w-full sm:max-w-md max-h-[85vh] rounded-t-3xl sm:rounded-3xl sombra-cocina flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 pb-3 border-b border-outline-variant/60 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+                <Icono nombre="auto_fix_high" className="text-primary text-xl" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold">Propuestas del asistente</h3>
+                <p className="text-xs text-on-surface-variant">
+                  {propuestas.length} producto{propuestas.length === 1 ? '' : 's'} cambiarían de categoría
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPropuestas(null)}
+                aria-label="Cerrar"
+                className="cursor-pointer btn-icono"
+              >
+                <Icono nombre="close" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+              {propuestas.map((p) => (
+                <div key={p.ingredienteId} className="tarjeta p-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{p.nombre}</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1 flex-wrap">
+                      {CATEGORIAS[p.categoriaActual].etiqueta}
+                      <Icono nombre="arrow_forward" className="text-sm" />
+                      <span className="font-semibold text-primary">
+                        {CATEGORIAS[p.categoriaPropuesta].etiqueta}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPropuestas((prev) =>
+                        prev ? prev.filter((x) => x.ingredienteId !== p.ingredienteId) : prev,
+                      )
+                    }
+                    aria-label={`Descartar ${p.nombre}`}
+                    className="cursor-pointer text-on-surface-variant hover:text-error"
+                  >
+                    <Icono nombre="close" className="text-lg" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 pt-3 border-t border-outline-variant/60 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => aceptarPropuestas(propuestas)}
+                className="btn-primario justify-center"
+              >
+                <Icono nombre="done_all" /> Aplicar {propuestas.length} cambio{propuestas.length === 1 ? '' : 's'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPropuestas(null)}
+                className="btn-secundario justify-center"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {avisoReorg && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-5 py-3 rounded-xl text-sm z-50 sombra-cocina">
+          {avisoReorg}
         </div>
       )}
     </div>

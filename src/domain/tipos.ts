@@ -38,6 +38,10 @@ export interface Ingrediente {
   /** Unidad canónica del stock ('g' | 'ml' | 'ud'). */
   unidadBase: UnidadBase;
   imagen?: string;
+  /** Marca del producto ("Hacendado", "Central Lechera"…). */
+  marca?: string;
+  /** Supermercado habitual donde se compra. */
+  supermercado?: string;
 }
 
 /** Línea de ingrediente dentro de una receta (cantidad para `raciones` base). */
@@ -98,6 +102,8 @@ export interface ItemDespensa {
   stockMinimo: number;
   /** Fecha de caducidad YYYY-MM-DD (opcional). */
   caducidad?: string;
+  /** Cuándo entró por primera vez en la despensa (ISO); marca "recién añadido". */
+  anadidoEn?: string;
 }
 
 /** Motivo de un cambio de stock: sirve como historial y auditoría. */
