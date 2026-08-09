@@ -22,6 +22,7 @@ export function extraerEstadoApp(): EstadoRemoto {
     feed: s.feed,
     solicitudes: s.solicitudes,
     perfil: s.perfil,
+    gastos: s.gastos,
   };
 }
 

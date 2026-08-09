@@ -8,7 +8,7 @@ import { forzarSync } from '../store/sync';
 import { EncabezadoPagina } from '../components/EncabezadoPagina';
 import { Icono } from '../components/Icono';
 
-const VERSION_BACKUP = 3;
+const VERSION_BACKUP = 4;
 
 function esBackupValido(datos: unknown): datos is DatosBackup {
   if (!datos || typeof datos !== 'object') return false;
@@ -18,6 +18,7 @@ function esBackupValido(datos: unknown): datos is DatosBackup {
     (typeof o.perfil === 'object' &&
       o.perfil !== null &&
       Array.isArray((o.perfil as { miembros?: unknown }).miembros));
+  const gastosOk = o.gastos === undefined || Array.isArray(o.gastos);
   return (
     Array.isArray(o.ingredientes) &&
     Array.isArray(o.recetas) &&
@@ -28,7 +29,8 @@ function esBackupValido(datos: unknown): datos is DatosBackup {
     Array.isArray(o.amigos) &&
     Array.isArray(o.feed) &&
     Array.isArray(o.solicitudes) &&
-    perfilOk
+    perfilOk &&
+    gastosOk
   );
 }
 
@@ -70,6 +72,7 @@ export function PantallaAjustes() {
       feed: estado.feed,
       solicitudes: estado.solicitudes,
       perfil: estado.perfil,
+      gastos: estado.gastos,
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -113,6 +116,7 @@ export function PantallaAjustes() {
         feed: datos.feed,
         solicitudes: datos.solicitudes,
         perfil: datos.perfil,
+        gastos: Array.isArray(datos.gastos) ? datos.gastos : [],
       });
       mostrarAviso('Datos restaurados correctamente');
     } catch {
@@ -247,6 +251,22 @@ export function PantallaAjustes() {
           <h3 className="font-semibold text-base">Perfil del hogar</h3>
           <p className="text-sm text-on-surface-variant">
             Alérgenos, preferencias y miembros de la familia
+          </p>
+        </div>
+        <Icono nombre="chevron_right" className="text-on-surface-variant" />
+      </Link>
+
+      <Link
+        to="/gastos"
+        className="tarjeta p-4 mb-4 flex items-center gap-3 hover:border-primary-fixed-dim transition-colors cursor-pointer"
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+          <Icono nombre="receipt_long" className="text-primary text-xl" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-base">Gastos y tickets</h3>
+          <p className="text-sm text-on-surface-variant">
+            Escanea tickets y reparte el gasto entre el hogar
           </p>
         </div>
         <Icono nombre="chevron_right" className="text-on-surface-variant" />

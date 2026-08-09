@@ -6,7 +6,7 @@ const PESTANAS = [
   { ruta: '/recetas', icono: 'menu_book', etiqueta: 'Recetas' },
   { ruta: '/despensa', icono: 'kitchen', etiqueta: 'Despensa' },
   { ruta: '/compra', icono: 'shopping_cart', etiqueta: 'Compra' },
-  { ruta: '/menu', icono: 'calendar_month', etiqueta: 'Menú' },
+  { ruta: '/gastos', icono: 'receipt_long', etiqueta: 'Gastos' },
 ] as const;
 
 export function NavegacionInferior() {

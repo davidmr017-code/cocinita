@@ -9,7 +9,12 @@ import {
   hashPin,
   middlewareAuth,
 } from './auth.js';
-import { clonarEstado, esEstadoValido } from './estado.js';
+import {
+  clonarEstado,
+  esEstadoValido,
+  incorporarUsuarioAlPerfil,
+  perfilMiembroNuevo,
+} from './estado.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3080;
@@ -104,9 +109,11 @@ app.post('/api/auth/crear', async (req, res) => {
 
     if (conDatosEjemplo && esEstadoValido(datosIniciales)) {
       estado = clonarEstado(datosIniciales);
+      // Recetas/despensa de ejemplo, pero miembros = quien crea el hogar (no los del seed)
       estado.perfil = {
         ...estado.perfil,
         nombreHogar,
+        miembros: [perfilMiembroNuevo(usuario, 0)],
       };
     }
 
@@ -176,12 +183,56 @@ app.post('/api/auth/unirse', async (req, res) => {
       usuario = creado.rows[0];
     }
 
-    const estadoR = await pool.query(
-      `SELECT version, datos FROM estados_hogar WHERE hogar_id = $1`,
-      [hogar.id],
-    );
-    const fila = estadoR.rows[0];
-    if (!fila) return res.status(500).json({ error: 'El hogar no tiene datos' });
+    const client = await pool.connect();
+    let version;
+    let estado;
+    try {
+      await client.query('BEGIN');
+      const estadoR = await client.query(
+        `SELECT version, datos FROM estados_hogar WHERE hogar_id = $1 FOR UPDATE`,
+        [hogar.id],
+      );
+      const fila = estadoR.rows[0];
+      if (!fila) {
+        await client.query('ROLLBACK');
+        return res.status(500).json({ error: 'El hogar no tiene datos' });
+      }
+
+      // Incorporar a todos los usuarios autenticados en el perfil visible
+      const usuariosR = await client.query(
+        `SELECT id, nombre FROM usuarios WHERE hogar_id = $1 ORDER BY creado_en`,
+        [hogar.id],
+      );
+      estado = fila.datos;
+      let changed = false;
+      for (const u of usuariosR.rows) {
+        const r = incorporarUsuarioAlPerfil(estado, u);
+        estado = r.estado;
+        changed = changed || r.changed;
+      }
+
+      if (changed) {
+        version = fila.version + 1;
+        await client.query(
+          `UPDATE estados_hogar
+           SET version = $1, datos = $2::jsonb, actualizado_en = NOW(), actualizado_por = $3
+           WHERE hogar_id = $4`,
+          [version, JSON.stringify(estado), usuario.id, hogar.id],
+        );
+      } else {
+        version = fila.version;
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        /* ignore */
+      }
+      throw err;
+    } finally {
+      client.release();
+    }
 
     const token = firmarToken({
       sub: usuario.id,
@@ -193,8 +244,8 @@ app.post('/api/auth/unirse', async (req, res) => {
       token,
       hogar: { id: hogar.id, nombre: hogar.nombre, codigo: hogar.codigo },
       usuario: { id: usuario.id, nombre: usuario.nombre },
-      version: fila.version,
-      estado: fila.datos,
+      version,
+      estado,
     });
   } catch (err) {
     console.error(err);
@@ -225,21 +276,57 @@ app.get('/api/auth/yo', middlewareAuth, async (req, res) => {
 });
 
 app.get('/api/state', middlewareAuth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const r = await pool.query(
-      `SELECT version, datos, actualizado_en FROM estados_hogar WHERE hogar_id = $1`,
+    await client.query('BEGIN');
+    const r = await client.query(
+      `SELECT version, datos, actualizado_en FROM estados_hogar WHERE hogar_id = $1 FOR UPDATE`,
       [req.usuario.hogarId],
     );
     const fila = r.rows[0];
-    if (!fila) return res.status(404).json({ error: 'Estado no encontrado' });
-    res.json({
-      version: fila.version,
-      estado: fila.datos,
-      actualizadoEn: fila.actualizado_en,
-    });
+    if (!fila) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Estado no encontrado' });
+    }
+
+    const usuariosR = await client.query(
+      `SELECT id, nombre FROM usuarios WHERE hogar_id = $1 ORDER BY creado_en`,
+      [req.usuario.hogarId],
+    );
+    let estado = fila.datos;
+    let version = fila.version;
+    let actualizadoEn = fila.actualizado_en;
+    let changed = false;
+    for (const u of usuariosR.rows) {
+      const out = incorporarUsuarioAlPerfil(estado, u);
+      estado = out.estado;
+      changed = changed || out.changed;
+    }
+
+    if (changed) {
+      version = fila.version + 1;
+      const upd = await client.query(
+        `UPDATE estados_hogar
+         SET version = $1, datos = $2::jsonb, actualizado_en = NOW(), actualizado_por = $3
+         WHERE hogar_id = $4
+         RETURNING actualizado_en`,
+        [version, JSON.stringify(estado), req.usuario.sub, req.usuario.hogarId],
+      );
+      actualizadoEn = upd.rows[0].actualizado_en;
+    }
+
+    await client.query('COMMIT');
+    res.json({ version, estado, actualizadoEn });
   } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      /* ignore */
+    }
     console.error(err);
     res.status(500).json({ error: 'Error al leer el estado' });
+  } finally {
+    client.release();
   }
 });
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { CategoriaIngrediente, Unidad } from '../domain/tipos';
 import { useAppStore } from '../store/useAppStore';
@@ -102,6 +103,20 @@ export function PantallaListaCompra() {
             : 'Todo comprado, o la lista está vacía.'
         }
       />
+
+      <Link
+        to="/gastos/nuevo"
+        className="tarjeta p-3 mb-4 flex items-center gap-3 hover:border-primary-fixed-dim transition-colors cursor-pointer"
+      >
+        <div className="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center shrink-0">
+          <Icono nombre="receipt_long" className="text-secondary text-xl" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm">Guardar ticket de compra</h3>
+          <p className="text-xs text-on-surface-variant">Escanea el ticket y asígnalo al hogar</p>
+        </div>
+        <Icono nombre="chevron_right" className="text-on-surface-variant" />
+      </Link>
 
       {/* Generador desde recetas */}
       <details className="tarjeta p-4 mb-4">

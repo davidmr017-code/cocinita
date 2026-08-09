@@ -60,6 +60,14 @@ export function BarraSuperior() {
           </button>
           <button
             type="button"
+            onClick={() => navegar('/menu')}
+            aria-label="Menú semanal"
+            className="btn-icono"
+          >
+            <Icono nombre="calendar_month" className="text-[1.35rem]" />
+          </button>
+          <button
+            type="button"
             onClick={() => navegar('/amigos')}
             aria-label="Amigos"
             className="btn-icono"

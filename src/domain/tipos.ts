@@ -239,3 +239,31 @@ export interface PerfilHogar {
   nombreHogar: string;
   miembros: MiembroHogar[];
 }
+
+/** Parte del importe de un ticket asignada a un miembro. */
+export interface RepartoGasto {
+  miembroId: string;
+  importe: number;
+}
+
+/**
+ * Ticket de compra (comida) del hogar: foto opcional, total y reparto
+ * entre miembros para controlar gastos familiares.
+ */
+export interface TicketCompra {
+  id: string;
+  /** Fecha de la compra (YYYY-MM-DD). */
+  fecha: string;
+  comercio: string;
+  /** Importe total en euros. */
+  total: number;
+  /** Foto del ticket (data URL JPEG comprimida). */
+  foto?: string;
+  notas?: string;
+  /** Quién pagó en caja (opcional). */
+  pagadoPorId?: string;
+  /** Reparto del gasto entre miembros del hogar. */
+  repartos: RepartoGasto[];
+  creadoEn: string;
+  actualizadoEn?: string;
+}

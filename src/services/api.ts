@@ -21,6 +21,7 @@ export type EstadoRemoto = {
   feed: unknown[];
   solicitudes: unknown[];
   perfil: unknown;
+  gastos?: unknown[];
 };
 
 async function pedir<T>(

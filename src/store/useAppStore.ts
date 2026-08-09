@@ -32,6 +32,7 @@ import type {
   PublicacionFeed,
   Receta,
   SolicitudReceta,
+  TicketCompra,
   TipoComida,
   TipoMovimiento,
   Unidad,
@@ -67,6 +68,7 @@ interface EstadoApp {
   feed: PublicacionFeed[];
   solicitudes: SolicitudReceta[];
   perfil: PerfilHogar;
+  gastos: TicketCompra[];
 
   /* --------------------------- Inventario ---------------------------- */
   ajustarStock: (ingredienteId: string, delta: number, tipo: TipoMovimiento, nota?: string) => void;
@@ -104,6 +106,10 @@ interface EstadoApp {
   eliminarMiembro: (miembroId: string) => void;
   anadirMiembro: (nombre: string) => string;
 
+  /* ------------------------------ Gastos ----------------------------- */
+  guardarTicket: (ticket: TicketCompra) => void;
+  eliminarTicket: (ticketId: string) => void;
+
   /* ----------------------------- Ajustes ----------------------------- */
   importarDatos: (datos: DatosBackup) => void;
   restablecerDatos: () => void;
@@ -123,6 +129,7 @@ export interface DatosBackup {
   feed: PublicacionFeed[];
   solicitudes: SolicitudReceta[];
   perfil?: PerfilHogar;
+  gastos?: TicketCompra[];
 }
 
 /** Estado de ejemplo (también se usa al crear un hogar en la nube). */
@@ -137,6 +144,7 @@ export const DATOS_SEED = {
   feed: FEED_SEED,
   solicitudes: SOLICITUDES_SEED,
   perfil: PERFIL_SEED,
+  gastos: [] as TicketCompra[],
 };
 
 export const useAppStore = create<EstadoApp>()(
@@ -152,6 +160,7 @@ export const useAppStore = create<EstadoApp>()(
       feed: FEED_SEED,
       solicitudes: SOLICITUDES_SEED,
       perfil: PERFIL_SEED,
+      gastos: [],
 
       /* ============================ INVENTARIO ============================ */
 
@@ -511,6 +520,24 @@ export const useAppStore = create<EstadoApp>()(
           };
         }),
 
+      /* ============================== GASTOS ============================= */
+
+      guardarTicket: (ticket) =>
+        set((estado) => {
+          const idx = estado.gastos.findIndex((t) => t.id === ticket.id);
+          if (idx >= 0) {
+            const gastos = [...estado.gastos];
+            gastos[idx] = { ...ticket, actualizadoEn: new Date().toISOString() };
+            return { gastos };
+          }
+          return { gastos: [{ ...ticket }, ...estado.gastos] };
+        }),
+
+      eliminarTicket: (ticketId) =>
+        set((estado) => ({
+          gastos: estado.gastos.filter((t) => t.id !== ticketId),
+        })),
+
       /* ============================== AJUSTES ============================ */
 
       importarDatos: (datos) =>
@@ -525,13 +552,14 @@ export const useAppStore = create<EstadoApp>()(
           feed: datos.feed,
           solicitudes: datos.solicitudes,
           perfil: datos.perfil ?? PERFIL_SEED,
+          gastos: Array.isArray(datos.gastos) ? datos.gastos : [],
         }),
 
       restablecerDatos: () => set({ ...DATOS_SEED }),
     }),
     {
       name: 'cocinita-datos',
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const estado = persisted as Partial<EstadoApp>;
         if (version < 2 && Array.isArray(estado.despensa)) {
@@ -542,6 +570,9 @@ export const useAppStore = create<EstadoApp>()(
         }
         if (version < 3 && !estado.perfil) {
           estado.perfil = PERFIL_SEED;
+        }
+        if (version < 4 && !Array.isArray(estado.gastos)) {
+          estado.gastos = [];
         }
         return estado as EstadoApp;
       },
