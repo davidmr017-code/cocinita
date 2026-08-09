@@ -61,11 +61,13 @@ function DetalleItem({
   unidadBase,
   onCaducidad,
   onStockMinimo,
+  onEliminar,
 }: {
   item: ItemDespensa;
   unidadBase: UnidadBase;
   onCaducidad: (fecha: string | undefined) => void;
   onStockMinimo: (valor: number) => void;
+  onEliminar: () => void;
 }) {
   const paso = pasoRapido(unidadBase);
   return (
@@ -101,6 +103,13 @@ function DetalleItem({
           ariaLabel="Stock mínimo"
         />
       </div>
+      <button
+        type="button"
+        onClick={onEliminar}
+        className="cursor-pointer mt-1 self-stretch px-3 py-2 rounded-xl border border-error/40 text-xs font-semibold text-error hover:bg-error-container/40 transition-colors flex items-center justify-center gap-1.5"
+      >
+        <Icono nombre="delete" className="text-base" /> Eliminar de la despensa
+      </button>
     </div>
   );
 }
@@ -114,6 +123,7 @@ export function PantallaDespensa() {
   const anadirItemManual = useAppStore((s) => s.anadirItemManual);
   const fijarCaducidad = useAppStore((s) => s.fijarCaducidad);
   const fijarStockMinimo = useAppStore((s) => s.fijarStockMinimo);
+  const eliminarDeDespensa = useAppStore((s) => s.eliminarDeDespensa);
 
   const [vista, setVista] = useState<Vista>('inventario');
   const [filtro, setFiltro] = useState<FiltroDespensa>('todos');
@@ -298,6 +308,16 @@ export function PantallaDespensa() {
                             unidadBase={ficha.unidadBase}
                             onCaducidad={(fecha) => fijarCaducidad(item.ingredienteId, fecha)}
                             onStockMinimo={(valor) => fijarStockMinimo(item.ingredienteId, valor)}
+                            onEliminar={() => {
+                              if (
+                                confirm(
+                                  `¿Eliminar «${ficha.nombre}» de la despensa? Podrás volver a añadirlo después.`,
+                                )
+                              ) {
+                                eliminarDeDespensa(item.ingredienteId);
+                                setExpandido(null);
+                              }
+                            }}
                           />
                         )}
                       </div>

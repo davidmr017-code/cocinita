@@ -76,6 +76,8 @@ interface EstadoApp {
   registrarProductoEscaneado: (producto: ProductoEscaneado, cantidad: number, caducidad?: string) => void;
   fijarCaducidad: (ingredienteId: string, caducidad: string | undefined) => void;
   fijarStockMinimo: (ingredienteId: string, stockMinimo: number) => void;
+  /** Quita el producto de la despensa (el catálogo se mantiene por si hay recetas). */
+  eliminarDeDespensa: (ingredienteId: string) => void;
 
   /* ----------------------------- Recetas ----------------------------- */
   guardarReceta: (receta: Receta) => void;
@@ -279,6 +281,24 @@ export const useAppStore = create<EstadoApp>()(
               : item,
           ),
         })),
+
+      eliminarDeDespensa: (ingredienteId) =>
+        set((estado) => {
+          const item = estado.despensa.find((i) => i.ingredienteId === ingredienteId);
+          if (!item) return estado;
+          const movimiento: MovimientoStock = {
+            id: nuevoId(),
+            ingredienteId,
+            delta: -item.cantidad,
+            tipo: 'ajuste',
+            fecha: new Date().toISOString(),
+            nota: 'Eliminado de la despensa',
+          };
+          return {
+            despensa: estado.despensa.filter((i) => i.ingredienteId !== ingredienteId),
+            movimientos: [movimiento, ...estado.movimientos],
+          };
+        }),
 
       /* ============================= RECETAS ============================= */
 
