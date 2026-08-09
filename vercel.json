@@ -1,0 +1,23 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/openfoodfacts/:path*",
+      "destination": "https://world.openfoodfacts.org/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/openfoodfacts/(.*)",
+      "headers": [
+        {
+          "key": "User-Agent",
+          "value": "Cocinita/1.0 (https://github.com/cocinita; pantry-recipe-app)"
+        }
+      ]
+    }
+  ]
+}

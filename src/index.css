@@ -1,0 +1,350 @@
+@import 'tailwindcss';
+
+/*
+ * Cocinita — tema "Cocina de casa"
+ * Cálido, táctil y editorial. Sin gradientes genéricos ni píldoras por todas partes.
+ */
+@theme {
+  /* ---- Paleta (pergamino + salvia + terracota) ---- */
+  --color-surface: #fdf9f4;
+  --color-surface-dim: #e8e0d6;
+  --color-surface-bright: #fffdf9;
+  --color-surface-container-lowest: #fffdf9;
+  --color-surface-container-low: #f8f2ea;
+  --color-surface-container: #f2ebe2;
+  --color-surface-container-high: #ebe3d8;
+  --color-surface-container-highest: #e0d8cc;
+  --color-on-surface: #2c2926;
+  --color-on-surface-variant: #5c564f;
+  --color-surface-variant: #e8e0d6;
+  --color-inverse-surface: #3a3632;
+  --color-inverse-on-surface: #f5f0e8;
+  --color-inverse-primary: #b8d4b5;
+  --color-outline: #8a8278;
+  --color-outline-variant: #d4cbc0;
+  --color-surface-tint: #4a6848;
+
+  --color-primary: #3f5c3e;
+  --color-on-primary: #fefcf8;
+  --color-primary-container: #c8dcc6;
+  --color-on-primary-container: #1e331f;
+  --color-primary-fixed: #d4e8d2;
+  --color-primary-fixed-dim: #b8d4b5;
+  --color-on-primary-fixed: #142816;
+  --color-on-primary-fixed-variant: #334833;
+
+  --color-secondary: #a85f3d;
+  --color-on-secondary: #fffaf7;
+  --color-secondary-container: #f0cbb8;
+  --color-on-secondary-container: #5c2f18;
+  --color-secondary-fixed: #f5e4da;
+  --color-secondary-fixed-dim: #e8c9b8;
+  --color-on-secondary-fixed: #3d1a08;
+  --color-on-secondary-fixed-variant: #6b3820;
+
+  --color-tertiary: #6b645c;
+  --color-on-tertiary: #fefcf8;
+  --color-tertiary-fixed: #ebe4db;
+
+  --color-error: #b3261e;
+  --color-on-error: #ffffff;
+  --color-error-container: #f9dedc;
+  --color-on-error-container: #8c1d18;
+
+  --color-background: #f5efe6;
+  --color-on-background: #2c2926;
+
+  --color-accent-warm: #e8d5c4;
+  --color-accent-cream: #faf3e8;
+
+  /* ---- Tipografía ---- */
+  --font-display: 'Rubik', system-ui, sans-serif;
+  --font-sans: 'Figtree', system-ui, sans-serif;
+  --font-serif: var(--font-display);
+
+  /* ---- Radios orgánicos ---- */
+  --radius-card: 1.25rem;
+  --radius-card-lg: 1.75rem;
+  --radius-btn: 0.875rem;
+  --radius-pill: 9999px;
+}
+
+/* Textura sutil de papel (evita el blanco plano "SaaS") */
+body {
+  background-color: var(--color-background);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(200, 220, 198, 0.35), transparent 50%),
+    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(232, 213, 196, 0.25), transparent 45%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-attachment: fixed;
+  color: var(--color-on-background);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+/* Material Symbols */
+.ms {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  user-select: none;
+}
+.ms-fill {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* ---- Utilidades de diseño ---- */
+
+.font-serif {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+/* Tarjeta tipo papel */
+.tarjeta {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 8px 24px -8px rgba(44, 41, 38, 0.12);
+}
+
+.tarjeta-interactiva {
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.2s ease;
+}
+.tarjeta-interactiva:hover {
+  border-color: var(--color-primary-fixed-dim);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 12px 32px -10px rgba(44, 41, 38, 0.16);
+}
+
+.sombra-cocina {
+  box-shadow: 0 8px 24px -8px rgba(44, 41, 38, 0.12);
+}
+.sombra-cocina-arriba {
+  box-shadow: 0 -8px 24px -8px rgba(44, 41, 38, 0.1);
+}
+
+/* Botones */
+.btn-primario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-btn);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px -2px rgba(63, 92, 62, 0.4);
+}
+.btn-primario:hover {
+  background: var(--color-surface-tint);
+}
+.btn-primario:active {
+  transform: scale(0.98);
+}
+
+.btn-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-btn);
+  background: var(--color-surface-container-low);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1.5px solid var(--color-outline-variant);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.btn-secundario:hover {
+  background: var(--color-primary-fixed);
+  border-color: var(--color-primary-fixed-dim);
+}
+.btn-secundario:active {
+  transform: scale(0.98);
+}
+
+.btn-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: var(--radius-btn);
+  color: var(--color-primary);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.btn-icono:hover {
+  background: var(--color-surface-container);
+}
+
+/* Campos de texto */
+.campo {
+  background: var(--color-surface-container-lowest);
+  border: 1.5px solid var(--color-outline-variant);
+  border-radius: var(--radius-btn);
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+.campo:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(63, 92, 62, 0.15);
+}
+.campo-busqueda {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-surface-container-lowest);
+  border: 1.5px solid var(--color-outline-variant);
+  border-radius: var(--radius-card);
+  padding: 0.875rem 1.125rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.campo-busqueda:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(63, 92, 62, 0.12);
+}
+
+/* Etiquetas (sentence case, no SHOUTING) */
+.etiqueta {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  letter-spacing: 0.01em;
+}
+.etiqueta-salvia {
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed-variant);
+}
+.etiqueta-terracota {
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed-variant);
+}
+.etiqueta-alerta {
+  background: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+
+/* Encabezados de página */
+.titulo-pagina {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  line-height: 1.12;
+  color: var(--color-on-surface);
+  letter-spacing: -0.025em;
+}
+.subtitulo-pagina {
+  color: var(--color-on-surface-variant);
+  font-size: 0.9375rem;
+  margin-top: 0.375rem;
+  max-width: 32rem;
+  font-weight: 500;
+}
+
+/* Nav flotante inferior */
+.nav-flotante {
+  background: rgba(253, 249, 244, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-outline-variant);
+  border-bottom: none;
+  border-radius: 1.25rem 1.25rem 0 0;
+}
+
+/* Barra superior acogedora */
+.barra-cocina {
+  background: rgba(253, 249, 244, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+/* Toggle acogedor */
+.toggle-cocina {
+  width: 3rem;
+  height: 1.75rem;
+  border-radius: var(--radius-pill);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  border: none;
+  flex-shrink: 0;
+}
+.toggle-cocina[data-on='true'] {
+  background: var(--color-primary);
+}
+.toggle-cocina[data-on='false'] {
+  background: var(--color-surface-container-highest);
+}
+.toggle-cocina span {
+  position: absolute;
+  top: 0.2rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px rgba(44, 41, 38, 0.2);
+  transition: left 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+.toggle-cocina[data-on='true'] span {
+  left: 1.45rem;
+}
+.toggle-cocina[data-on='false'] span {
+  left: 0.2rem;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.checked-item {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+/* Compatibilidad con clases antiguas */
+.soft-shadow {
+  box-shadow: 0 8px 24px -8px rgba(44, 41, 38, 0.12);
+}
+.soft-shadow-up {
+  box-shadow: 0 -8px 24px -8px rgba(44, 41, 38, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
