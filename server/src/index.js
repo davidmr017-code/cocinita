@@ -15,6 +15,7 @@ import {
   incorporarUsuarioAlPerfil,
   perfilMiembroNuevo,
 } from './estado.js';
+import { generarRecetasIA, iaDisponible } from './ia.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3080;
@@ -395,6 +396,41 @@ app.put('/api/state', middlewareAuth, async (req, res) => {
     res.status(500).json({ error: 'Error al guardar el estado' });
   } finally {
     client.release();
+  }
+});
+
+/**
+ * Chef IA: propone recetas con los ingredientes de la despensa.
+ * Body: { despensa: [{nombre, cantidad, unidad}], alergenos, preferencias, evitados }
+ */
+app.post('/api/ia/recetas', middlewareAuth, async (req, res) => {
+  try {
+    if (!iaDisponible()) {
+      return res.status(503).json({
+        error: 'La IA no está configurada (falta GROQ_API_KEY en el servidor)',
+      });
+    }
+
+    const despensa = Array.isArray(req.body?.despensa) ? req.body.despensa.slice(0, 120) : [];
+    if (despensa.length === 0) {
+      return res.status(400).json({ error: 'Tu despensa está vacía: añade ingredientes primero' });
+    }
+
+    const resultado = await generarRecetasIA({
+      despensa: despensa.map((d) => ({
+        nombre: String(d?.nombre || '').slice(0, 80),
+        cantidad: Number(d?.cantidad) || 0,
+        unidad: String(d?.unidad || 'ud').slice(0, 6),
+      })),
+      alergenos: Array.isArray(req.body?.alergenos) ? req.body.alergenos.slice(0, 20).map(String) : [],
+      preferencias: Array.isArray(req.body?.preferencias) ? req.body.preferencias.slice(0, 20).map(String) : [],
+      evitados: Array.isArray(req.body?.evitados) ? req.body.evitados.slice(0, 30).map(String) : [],
+    });
+
+    res.json(resultado);
+  } catch (err) {
+    console.error(err);
+    res.status(502).json({ error: err.message || 'No se pudieron generar recetas' });
   }
 });
 

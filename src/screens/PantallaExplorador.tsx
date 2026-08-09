@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { filtrarRecetas, type FiltrosReceta } from '../services/recetas';
 import { TarjetaReceta } from '../components/TarjetaReceta';
@@ -46,6 +47,22 @@ export function PantallaExplorador() {
           className="bg-transparent outline-none w-full text-on-surface placeholder:text-on-surface-variant/80"
         />
       </label>
+
+      <Link
+        to="/chef"
+        className="tarjeta p-4 mb-4 flex items-center gap-3 hover:border-primary-fixed-dim transition-colors cursor-pointer bg-primary-fixed/30"
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+          <Icono nombre="auto_awesome" className="text-primary text-xl" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-on-surface">Chef IA · ¿Qué cocino hoy?</p>
+          <p className="text-xs text-on-surface-variant">
+            La IA inventa recetas con lo que hay en tu despensa
+          </p>
+        </div>
+        <Icono nombre="chevron_right" className="text-on-surface-variant" />
+      </Link>
 
       <div className="tarjeta p-4 mb-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">

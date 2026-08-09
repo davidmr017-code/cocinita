@@ -18,6 +18,7 @@ import { PantallaImportarReceta } from './screens/PantallaImportarReceta';
 import { PantallaAcceso } from './screens/PantallaAcceso';
 import { PantallaGastos } from './screens/PantallaGastos';
 import { PantallaTicket } from './screens/PantallaTicket';
+import { PantallaChef } from './screens/PantallaChef';
 import { useAuthStore } from './store/useAuthStore';
 import { iniciarSyncFamiliar, refrescarDesdeServidor } from './store/sync';
 
@@ -70,6 +71,7 @@ function AppAutenticada() {
           <Route path="/despensa" element={<PantallaDespensa />} />
           <Route path="/escanear" element={<PantallaEscaner />} />
           <Route path="/compra" element={<PantallaListaCompra />} />
+          <Route path="/chef" element={<PantallaChef />} />
           <Route path="/gastos" element={<PantallaGastos />} />
           <Route path="/gastos/nuevo" element={<PantallaTicket />} />
           <Route path="/gastos/:id" element={<PantallaTicket />} />

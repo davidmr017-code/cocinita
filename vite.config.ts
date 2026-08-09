@@ -58,6 +58,10 @@ export default defineConfig(({ command }) => ({
         target: 'http://127.0.0.1:3080',
         changeOrigin: true,
       },
+      '/api/ia': {
+        target: 'http://127.0.0.1:3080',
+        changeOrigin: true,
+      },
     },
   },
 }))

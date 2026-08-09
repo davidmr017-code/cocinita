@@ -117,3 +117,37 @@ export async function yo(token: string) {
     hogar: SesionHogar['hogar'];
   }>('/api/auth/yo', { token });
 }
+
+/* ----------------------------- Chef IA ----------------------------- */
+
+export type RecetaIA = {
+  titulo: string;
+  descripcion: string;
+  raciones: number;
+  tiempoMin: number;
+  dificultad: 'facil' | 'media' | 'dificil';
+  etiquetas: string[];
+  ingredientes: {
+    nombre: string;
+    cantidad: number;
+    unidad: string;
+    enDespensa: boolean;
+  }[];
+  pasos: { titulo: string; descripcion: string }[];
+};
+
+export async function pedirRecetasIA(
+  token: string,
+  payload: {
+    despensa: { nombre: string; cantidad: number; unidad: string }[];
+    alergenos: string[];
+    preferencias: string[];
+    evitados: string[];
+  },
+) {
+  return pedir<{ recetas: RecetaIA[] }>('/api/ia/recetas', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(payload),
+  });
+}
