@@ -2,11 +2,14 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { pedirCaloriasIA } from '../services/api';
 import { escalarIngredientes, indexarStock } from '../services/recetas';
 import { calcularIngredientesFaltantes } from '../services/compras';
 import { avisosParaReceta, ETIQUETA_ALERGENO } from '../services/perfil';
 import { aUnidadBase, formatearCantidad } from '../domain/unidades';
 import { diasDeLaSemana, aFechaISO } from '../domain/utilidades';
+import { useTraduccion } from '../i18n/useTraduccion';
 import { ControlCantidad } from '../components/ControlCantidad';
 import { Icono } from '../components/Icono';
 import { DIFICULTAD_LEGIBLE } from '../components/TarjetaReceta';
@@ -25,6 +28,7 @@ const DIAS_CORTOS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 export function PantallaDetalleReceta() {
   const { id } = useParams();
   const navegar = useNavigate();
+  const { t } = useTraduccion();
 
   const receta = useAppStore((s) => s.recetas.find((r) => r.id === id));
   const despensa = useAppStore((s) => s.despensa);
@@ -32,14 +36,19 @@ export function PantallaDetalleReceta() {
   const miembros = useAppStore((s) => s.perfil.miembros);
   const alternarFavorita = useAppStore((s) => s.alternarFavorita);
   const eliminarReceta = useAppStore((s) => s.eliminarReceta);
+  const guardarReceta = useAppStore((s) => s.guardarReceta);
   const generarListaDesdeRecetas = useAppStore((s) => s.generarListaDesdeRecetas);
   const cocinarReceta = useAppStore((s) => s.cocinarReceta);
   const anadirAlMenu = useAppStore((s) => s.anadirAlMenu);
+
+  const modo = useAuthStore((s) => s.modo);
+  const token = useAuthStore((s) => s.token);
 
   const [raciones, setRaciones] = useState(receta?.raciones ?? 2);
   const [modoCocina, setModoCocina] = useState(false);
   const [pasosHechos, setPasosHechos] = useState<Set<number>>(new Set());
   const [aviso, setAviso] = useState<string | null>(null);
+  const [calculandoCalorias, setCalculandoCalorias] = useState(false);
 
   const avisosPerfil = useMemo(() => {
     if (!receta) return { alergenos: [], evitados: [] };
@@ -103,6 +112,48 @@ export function PantallaDetalleReceta() {
 
   const progreso = receta.pasos.length > 0 ? (pasosHechos.size / receta.pasos.length) * 100 : 0;
 
+  const caloriasEscaladas =
+    receta.caloriasPorRacion != null
+      ? Math.round((receta.caloriasPorRacion * raciones) / Math.max(1, receta.raciones))
+      : null;
+
+  const calcularCalorias = async () => {
+    if (!token || modo !== 'familia') {
+      setAviso(t('detalle.caloriasNecesitaHogar'));
+      setTimeout(() => setAviso(null), 3200);
+      return;
+    }
+    if (calculandoCalorias) return;
+
+    const fichas = new Map(ingredientesCatalogo.map((i) => [i.id, i]));
+    const ingredientes = receta.ingredientes.map((ing) => ({
+      nombre: fichas.get(ing.ingredienteId)?.nombre ?? ing.ingredienteId,
+      cantidad: ing.cantidad,
+      unidad: ing.unidad,
+    }));
+
+    setCalculandoCalorias(true);
+    try {
+      const res = await pedirCaloriasIA(token, {
+        titulo: receta.titulo,
+        raciones: receta.raciones,
+        ingredientes,
+      });
+      guardarReceta({
+        ...receta,
+        caloriasPorRacion: res.caloriasPorRacion,
+        caloriasCalculadasEn: new Date().toISOString(),
+      });
+      setAviso(t('detalle.caloriasListas'));
+      setTimeout(() => setAviso(null), 2500);
+    } catch (err) {
+      setAviso(err instanceof Error ? err.message : 'No se pudieron estimar las calorías');
+      setTimeout(() => setAviso(null), 3200);
+    } finally {
+      setCalculandoCalorias(false);
+    }
+  };
+
   return (
     <div>
       {/* Imagen protagonista con barra de progreso en modo cocina */}
@@ -146,11 +197,46 @@ export function PantallaDetalleReceta() {
               <span className="etiqueta etiqueta-terracota inline-flex items-center gap-1">
                 <Icono nombre="restaurant" className="text-base" /> {DIFICULTAD_LEGIBLE[receta.dificultad]}
               </span>
+              {caloriasEscaladas != null && (
+                <span className="etiqueta bg-primary-fixed text-on-primary-fixed-variant inline-flex items-center gap-1">
+                  <Icono nombre="local_fire_department" className="text-base" />
+                  {t('detalle.calorias', { n: caloriasEscaladas })}
+                </span>
+              )}
               {receta.etiquetas.map((e) => (
                 <span key={e} className="etiqueta bg-surface-container text-on-surface">
                   {e}
                 </span>
               ))}
+            </div>
+
+            <div className="mt-3">
+              {caloriasEscaladas != null ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-on-surface-variant">
+                    {t('detalle.caloriasEscaladas', { n: caloriasEscaladas, r: raciones })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void calcularCalorias()}
+                    disabled={calculandoCalorias}
+                    className="cursor-pointer text-xs font-semibold text-primary hover:underline disabled:opacity-40"
+                  >
+                    {calculandoCalorias ? t('detalle.calculandoCalorias') : t('detalle.recalcularCalorias')}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void calcularCalorias()}
+                  disabled={calculandoCalorias}
+                  className="btn-secundario py-2 px-3 text-sm disabled:opacity-40"
+                >
+                  <Icono nombre={calculandoCalorias ? 'hourglass_top' : 'local_fire_department'} />
+                  {calculandoCalorias ? t('detalle.calculandoCalorias') : t('detalle.calcularCalorias')}
+                </button>
+              )}
+              <p className="text-[11px] text-on-surface-variant mt-1.5">{t('detalle.caloriasAviso')}</p>
             </div>
           </div>
 

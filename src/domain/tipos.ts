@@ -89,6 +89,10 @@ export interface Receta {
   /** false = guardada "por aprender" (aún no la hemos cocinado nunca). */
   aprendida: boolean;
   creadaEn: string; // ISO date
+  /** kcal por ración (estimación IA); undefined = aún no calculado. */
+  caloriasPorRacion?: number;
+  /** ISO de cuándo se estimaron las calorías. */
+  caloriasCalculadasEn?: string;
 }
 
 /**

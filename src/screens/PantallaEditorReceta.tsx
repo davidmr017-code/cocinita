@@ -111,6 +111,24 @@ export function PantallaEditorReceta() {
     }
     if (filas.length === 0) return alert('Añade al menos un ingrediente.');
 
+    const ingredientesNuevos = filas.map((f) => ({
+      ingredienteId: asegurarIngrediente(f.nombre, 'otros', baseDe(f.unidad)),
+      cantidad: f.cantidad,
+      unidad: f.unidad,
+      indispensable: f.indispensable,
+    }));
+
+    const mismaComposicion =
+      !!existente &&
+      existente.raciones === raciones &&
+      existente.ingredientes.length === ingredientesNuevos.length &&
+      existente.ingredientes.every(
+        (ing, i) =>
+          ing.ingredienteId === ingredientesNuevos[i].ingredienteId &&
+          ing.cantidad === ingredientesNuevos[i].cantidad &&
+          ing.unidad === ingredientesNuevos[i].unidad,
+      );
+
     const receta: Receta = {
       id: existente?.id ?? nuevoId(),
       titulo: titulo.trim(),
@@ -125,18 +143,19 @@ export function PantallaEditorReceta() {
         .split(',')
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean),
-      ingredientes: filas.map((f) => ({
-        ingredienteId: asegurarIngrediente(f.nombre, 'otros', baseDe(f.unidad)),
-        cantidad: f.cantidad,
-        unidad: f.unidad,
-        indispensable: f.indispensable,
-      })),
+      ingredientes: ingredientesNuevos,
       pasos: pasos.filter((p) => p.descripcion.trim()),
       favorita: existente?.favorita ?? false,
       origen: existente?.origen ?? 'propia',
       autor: existente?.autor,
       aprendida: existente?.aprendida ?? false,
       creadaEn: existente?.creadaEn ?? new Date().toISOString(),
+      ...(mismaComposicion
+        ? {
+            caloriasPorRacion: existente?.caloriasPorRacion,
+            caloriasCalculadasEn: existente?.caloriasCalculadasEn,
+          }
+        : {}),
     };
     guardarReceta(receta);
     navegar(`/receta/${receta.id}`);

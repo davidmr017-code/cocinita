@@ -241,3 +241,64 @@ export async function chatChefIA(payload) {
 
   return { mensaje: mensajeRespuesta, receta, faltantes };
 }
+
+/**
+ * Estima las kcal por ración de una receta a partir de sus ingredientes.
+ * Devuelve { caloriasPorRacion } ya validado.
+ */
+export async function estimarCaloriasReceta({ titulo, raciones, ingredientes }) {
+  const lineas = (ingredientes || [])
+    .filter((i) => i && i.nombre)
+    .slice(0, 40)
+    .map((i) => `- ${i.nombre}: ${i.cantidad} ${i.unidad}`)
+    .join('\n');
+
+  if (!lineas) throw new Error('La receta no tiene ingredientes para estimar');
+
+  const rac = Number(raciones) > 0 ? Math.round(Number(raciones)) : 2;
+
+  const prompt = `Eres un nutricionista. Estima las calorías de esta receta casera española.
+
+RECETA: ${String(titulo || 'Sin título').slice(0, 120)}
+RACIONES BASE: ${rac}
+
+INGREDIENTES (cantidades para las ${rac} raciones):
+${lineas}
+
+Calcula las kcal TOTALES de toda la receta y divide entre las raciones.
+Usa valores nutricionales estándar (USDA / BEDCA). Ignora agua, sal y especias sin aporte calórico relevante.
+
+Responde SOLO con JSON válido, sin markdown:
+{ "caloriasPorRacion": 450, "caloriasTotales": 900, "nota": "estimación breve" }
+
+caloriasPorRacion debe ser un entero entre 30 y 2500.`;
+
+  const texto = await llamarGroq(
+    [
+      {
+        role: 'system',
+        content: 'Eres un nutricionista preciso. Respondes solo JSON válido con enteros.',
+      },
+      { role: 'user', content: prompt },
+    ],
+    { temperature: 0.2, max_tokens: 400 },
+  );
+
+  const json = extraerJson(texto);
+  let porRacion = Math.round(Number(json.caloriasPorRacion));
+
+  // Si el modelo solo devolvió el total, lo derivamos.
+  if (!Number.isFinite(porRacion) || porRacion <= 0) {
+    const totales = Math.round(Number(json.caloriasTotales));
+    if (Number.isFinite(totales) && totales > 0) porRacion = Math.round(totales / rac);
+  }
+
+  if (!Number.isFinite(porRacion) || porRacion < 30 || porRacion > 2500) {
+    throw new Error('La IA no pudo estimar las calorías de esta receta');
+  }
+
+  return {
+    caloriasPorRacion: porRacion,
+    nota: String(json.nota || '').slice(0, 200) || undefined,
+  };
+}

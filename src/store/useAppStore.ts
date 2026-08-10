@@ -642,7 +642,7 @@ export const useAppStore = create<EstadoApp>()(
     }),
     {
       name: 'cocinita-datos',
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         const estado = persisted as Partial<EstadoApp>;
         if (version < 2 && Array.isArray(estado.despensa)) {
@@ -663,6 +663,7 @@ export const useAppStore = create<EstadoApp>()(
             favorito: item.favorito ?? false,
           }));
         }
+        // v6: caloriasPorRacion opcional en Receta — no requiere migración.
         return estado as EstadoApp;
       },
     },

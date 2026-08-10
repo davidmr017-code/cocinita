@@ -74,6 +74,15 @@ export function TarjetaReceta({ receta, extra }: TarjetaRecetaProps) {
           </span>
           <span className="w-1 h-1 rounded-full bg-outline-variant" aria-hidden />
           <span>{DIFICULTAD_LEGIBLE[receta.dificultad]}</span>
+          {receta.caloriasPorRacion != null && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-outline-variant" aria-hidden />
+              <span className="flex items-center gap-1">
+                <Icono nombre="local_fire_department" className="text-[0.95rem]" />
+                {receta.caloriasPorRacion} kcal
+              </span>
+            </>
+          )}
           {receta.videoUrl && (
             <>
               <span className="w-1 h-1 rounded-full bg-outline-variant" aria-hidden />

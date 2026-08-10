@@ -181,3 +181,18 @@ export async function chatChefIA(
     body: JSON.stringify(payload),
   });
 }
+
+export async function pedirCaloriasIA(
+  token: string,
+  payload: {
+    titulo: string;
+    raciones: number;
+    ingredientes: { nombre: string; cantidad: number; unidad: string }[];
+  },
+) {
+  return pedir<{ caloriasPorRacion: number; nota?: string }>('/api/ia/calorias', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(payload),
+  });
+}

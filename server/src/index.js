@@ -15,7 +15,7 @@ import {
   incorporarUsuarioAlPerfil,
   perfilMiembroNuevo,
 } from './estado.js';
-import { generarRecetasIA, chatChefIA, iaDisponible } from './ia.js';
+import { generarRecetasIA, chatChefIA, estimarCaloriasReceta, iaDisponible } from './ia.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3080;
@@ -473,6 +473,42 @@ app.post('/api/ia/chat', middlewareAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(502).json({ error: err.message || 'No se pudo responder' });
+  }
+});
+
+/**
+ * Estima calorías de una receta a partir de sus ingredientes.
+ * Body: { titulo, raciones, ingredientes: [{nombre, cantidad, unidad}] }
+ */
+app.post('/api/ia/calorias', middlewareAuth, async (req, res) => {
+  try {
+    if (!iaDisponible()) {
+      return res.status(503).json({
+        error: 'La IA no está configurada (falta GROQ_API_KEY en el servidor)',
+      });
+    }
+
+    const ingredientes = Array.isArray(req.body?.ingredientes)
+      ? req.body.ingredientes.slice(0, 40)
+      : [];
+    if (ingredientes.length === 0) {
+      return res.status(400).json({ error: 'La receta no tiene ingredientes' });
+    }
+
+    const resultado = await estimarCaloriasReceta({
+      titulo: String(req.body?.titulo || '').slice(0, 120),
+      raciones: Number(req.body?.raciones) || 2,
+      ingredientes: ingredientes.map((i) => ({
+        nombre: String(i?.nombre || '').slice(0, 80),
+        cantidad: Number(i?.cantidad) || 0,
+        unidad: String(i?.unidad || 'ud').slice(0, 6),
+      })),
+    });
+
+    res.json(resultado);
+  } catch (err) {
+    console.error(err);
+    res.status(502).json({ error: err.message || 'No se pudieron estimar las calorías' });
   }
 });
 

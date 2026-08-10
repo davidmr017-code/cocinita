@@ -5,6 +5,7 @@ import type { Receta, Unidad } from '../domain/tipos';
 import { nuevoId } from '../domain/utilidades';
 import {
   chatChefIA,
+  pedirCaloriasIA,
   pedirRecetasIA,
   type IngredienteFaltanteIA,
   type RecetaIA,
@@ -344,13 +345,40 @@ export function PantallaChef() {
   };
 
   const guardar = (receta: RecetaIA, indice: number) => {
-    guardarReceta(recetaIAaReceta(receta, asegurarIngrediente));
+    const nueva = recetaIAaReceta(receta, asegurarIngrediente);
+    guardarReceta(nueva);
     setGuardadas((prev) => new Set(prev).add(indice));
+    void enriquecerCalorias(nueva, receta);
   };
 
   const guardarChat = (receta: RecetaIA, idMensaje: string) => {
-    guardarReceta(recetaIAaReceta(receta, asegurarIngrediente));
+    const nueva = recetaIAaReceta(receta, asegurarIngrediente);
+    guardarReceta(nueva);
     setGuardadasChat((prev) => new Set(prev).add(idMensaje));
+    void enriquecerCalorias(nueva, receta);
+  };
+
+  /** Estima calorías en segundo plano tras guardar (no bloquea la UI). */
+  const enriquecerCalorias = async (guardada: Receta, origen: RecetaIA) => {
+    if (!token) return;
+    try {
+      const res = await pedirCaloriasIA(token, {
+        titulo: origen.titulo,
+        raciones: origen.raciones,
+        ingredientes: origen.ingredientes.map((i) => ({
+          nombre: i.nombre,
+          cantidad: i.cantidad,
+          unidad: i.unidad,
+        })),
+      });
+      guardarReceta({
+        ...guardada,
+        caloriasPorRacion: res.caloriasPorRacion,
+        caloriasCalculadasEn: new Date().toISOString(),
+      });
+    } catch {
+      // Silencioso: la receta ya está guardada; se pueden calcular luego en el detalle.
+    }
   };
 
   const anadirFaltantesCompra = (faltantes: IngredienteFaltanteIA[], idMensaje: string) => {
