@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { BarraSuperior } from './components/BarraSuperior';
 import { NavegacionInferior } from './components/NavegacionInferior';
+import { TutorialInicial } from './components/TutorialInicial';
 import { useTraduccion } from './i18n/useTraduccion';
 import { PantallaExplorador } from './screens/PantallaExplorador';
 import { PantallaMisRecetas } from './screens/PantallaMisRecetas';
@@ -17,17 +18,37 @@ import { PantallaAjustes } from './screens/PantallaAjustes';
 import { PantallaPerfil } from './screens/PantallaPerfil';
 import { PantallaImportarReceta } from './screens/PantallaImportarReceta';
 import { PantallaAcceso } from './screens/PantallaAcceso';
+import { PantallaLanding } from './screens/PantallaLanding';
 import { PantallaGastos } from './screens/PantallaGastos';
 import { PantallaTicket } from './screens/PantallaTicket';
 import { PantallaChef } from './screens/PantallaChef';
 import { useAuthStore } from './store/useAuthStore';
 import { iniciarSyncFamiliar, refrescarDesdeServidor } from './store/sync';
 
+/** Portada pública: landing con las funciones y, al entrar, el acceso al hogar. */
+function Bienvenida() {
+  const [verAcceso, setVerAcceso] = useState(false);
+  const elegirLocal = useAuthStore((s) => s.elegirLocal);
+
+  if (!verAcceso) {
+    return (
+      <PantallaLanding onEmpezar={() => setVerAcceso(true)} onProbarLocal={() => elegirLocal()} />
+    );
+  }
+
+  return (
+    <main className="w-full max-w-[1280px] mx-auto px-4 md:px-10 pt-5 pb-10">
+      <PantallaAcceso onVolver={() => setVerAcceso(false)} />
+    </main>
+  );
+}
+
 function AppAutenticada() {
   const modo = useAuthStore((s) => s.modo);
   const token = useAuthStore((s) => s.token);
   const sincronizando = useAuthStore((s) => s.sincronizando);
   const ultimoError = useAuthStore((s) => s.ultimoError);
+  const tutorialAbierto = useAuthStore((s) => s.tutorialAbierto);
   const { t, idioma } = useTraduccion();
 
   useEffect(() => {
@@ -45,11 +66,7 @@ function AppAutenticada() {
   }, [modo, token]);
 
   if (modo === 'sin-elegir') {
-    return (
-      <main className="w-full max-w-[1280px] mx-auto px-4 md:px-10 pt-5 pb-10">
-        <PantallaAcceso />
-      </main>
-    );
+    return <Bienvenida />;
   }
 
   return (
@@ -88,6 +105,7 @@ function AppAutenticada() {
         </Routes>
       </main>
       <NavegacionInferior />
+      {tutorialAbierto && <TutorialInicial />}
     </>
   );
 }

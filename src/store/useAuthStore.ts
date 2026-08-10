@@ -14,6 +14,10 @@ interface EstadoAuth {
   sincronizando: boolean;
   ultimoError: string | null;
   ultimoSync: string | null;
+  /** Tutorial de bienvenida visible (no se persiste: solo tras entrar). */
+  tutorialAbierto: boolean;
+  /** Distingue "he creado el hogar" de "me he unido" en el tutorial. */
+  hogarRecienCreado: boolean;
 
   elegirLocal: () => void;
   establecerSesion: (sesion: {
@@ -21,7 +25,10 @@ interface EstadoAuth {
     hogar: SesionHogar['hogar'];
     usuario: SesionHogar['usuario'];
     version: number;
+    recienCreado?: boolean;
   }) => void;
+  abrirTutorial: () => void;
+  cerrarTutorial: () => void;
   fijarVersion: (version: number) => void;
   setSincronizando: (v: boolean) => void;
   setError: (msg: string | null) => void;
@@ -40,6 +47,8 @@ export const useAuthStore = create<EstadoAuth>()(
       sincronizando: false,
       ultimoError: null,
       ultimoSync: null,
+      tutorialAbierto: false,
+      hogarRecienCreado: false,
 
       elegirLocal: () =>
         set({
@@ -49,9 +58,11 @@ export const useAuthStore = create<EstadoAuth>()(
           usuario: null,
           version: 0,
           ultimoError: null,
+          tutorialAbierto: true,
+          hogarRecienCreado: false,
         }),
 
-      establecerSesion: ({ token, hogar, usuario, version }) =>
+      establecerSesion: ({ token, hogar, usuario, version, recienCreado = false }) =>
         set({
           modo: 'familia',
           token,
@@ -59,7 +70,12 @@ export const useAuthStore = create<EstadoAuth>()(
           usuario,
           version,
           ultimoError: null,
+          tutorialAbierto: true,
+          hogarRecienCreado: recienCreado,
         }),
+
+      abrirTutorial: () => set({ tutorialAbierto: true }),
+      cerrarTutorial: () => set({ tutorialAbierto: false }),
 
       fijarVersion: (version) => set({ version }),
       setSincronizando: (sincronizando) => set({ sincronizando }),
@@ -76,6 +92,8 @@ export const useAuthStore = create<EstadoAuth>()(
           sincronizando: false,
           ultimoError: null,
           ultimoSync: null,
+          tutorialAbierto: false,
+          hogarRecienCreado: false,
         }),
     }),
     {

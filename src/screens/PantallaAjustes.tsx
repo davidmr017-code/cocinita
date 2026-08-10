@@ -50,6 +50,7 @@ export function PantallaAjustes() {
   const ultimoSync = useAuthStore((s) => s.ultimoSync);
   const sincronizando = useAuthStore((s) => s.sincronizando);
   const cerrarSesion = useAuthStore((s) => s.cerrarSesion);
+  const abrirTutorial = useAuthStore((s) => s.abrirTutorial);
   const inputRef = useRef<HTMLInputElement>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -267,6 +268,21 @@ export function PantallaAjustes() {
           })}
         </div>
       </section>
+
+      <button
+        type="button"
+        onClick={() => abrirTutorial()}
+        className="tarjeta p-4 mb-4 flex items-center gap-3 w-full text-left hover:border-primary-fixed-dim transition-colors cursor-pointer"
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+          <Icono nombre="school" className="text-primary text-xl" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-base">{t('ajustes.tutorialTitulo')}</h3>
+          <p className="text-sm text-on-surface-variant">{t('ajustes.tutorialSub')}</p>
+        </div>
+        <Icono nombre="chevron_right" className="text-on-surface-variant" />
+      </button>
 
       <Link
         to="/perfil"

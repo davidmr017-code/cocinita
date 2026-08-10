@@ -10,10 +10,15 @@ import { Icono } from '../components/Icono';
 
 type Pestaña = 'crear' | 'unirse';
 
+interface PantallaAccesoProps {
+  /** Vuelve a la portada; si no se pasa, no se muestra el botón. */
+  onVolver?: () => void;
+}
+
 /**
  * Acceso familiar: crear hogar o unirse con código (Postgres / Railway).
  */
-export function PantallaAcceso() {
+export function PantallaAcceso({ onVolver }: PantallaAccesoProps = {}) {
   const { t } = useTraduccion();
   const elegirLocal = useAuthStore((s) => s.elegirLocal);
   const establecerSesion = useAuthStore((s) => s.establecerSesion);
@@ -44,6 +49,7 @@ export function PantallaAcceso() {
         hogar: res.hogar,
         usuario: res.usuario,
         version: res.version,
+        recienCreado: true,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el hogar');
@@ -77,6 +83,17 @@ export function PantallaAcceso() {
 
   return (
     <div className="max-w-md mx-auto py-6">
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          className="cursor-pointer mb-4 inline-flex items-center gap-1 text-sm font-semibold text-on-surface-variant hover:text-primary"
+        >
+          <Icono nombre="arrow_back" className="text-base" />
+          {t('landing.volver')}
+        </button>
+      )}
+
       <EncabezadoPagina
         titulo={t('acceso.titulo')}
         subtitulo={t('acceso.subtitulo')}

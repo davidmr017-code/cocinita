@@ -21,6 +21,8 @@ type Rutas =
   | `escaner.${keyof Diccionario['escaner']}`
   | `perfil.${keyof Diccionario['perfil']}`
   | `acceso.${keyof Diccionario['acceso']}`
+  | `landing.${keyof Diccionario['landing']}`
+  | `tutorial.${keyof Diccionario['tutorial']}`
   | `importar.${keyof Diccionario['importar']}`
   | `detalle.${keyof Diccionario['detalle']}`
   | `ajustes.${keyof Diccionario['ajustes']}`;

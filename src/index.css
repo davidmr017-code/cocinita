@@ -342,6 +342,81 @@ body {
   scrollbar-width: none;
 }
 
+/* ---- Landing: revelado al hacer scroll ---- */
+.revelar {
+  opacity: 0;
+  transform: translateY(2rem);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: opacity, transform;
+}
+.revelar[data-visible='true'] {
+  opacity: 1;
+  transform: none;
+}
+.revelar-izquierda {
+  transform: translateX(-2rem);
+}
+.revelar-derecha {
+  transform: translateX(2rem);
+}
+.revelar-zoom {
+  transform: scale(0.94);
+}
+
+/* Degradado de marca para titulares de la landing */
+.texto-degradado {
+  background: linear-gradient(115deg, var(--color-primary) 10%, #14b8a6 45%, var(--color-secondary) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Manchas de color difuminadas del hero */
+.mancha-hero {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  animation: flotar-mancha 14s ease-in-out infinite;
+}
+
+@keyframes flotar-mancha {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -1.5rem, 0) scale(1.08);
+  }
+}
+
+@keyframes flotar-suave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.5rem);
+  }
+}
+
+.flotar-suave {
+  animation: flotar-suave 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revelar {
+    opacity: 1;
+    transform: none;
+  }
+  .mancha-hero,
+  .flotar-suave {
+    animation: none;
+  }
+}
+
 .checked-item {
   text-decoration: line-through;
   opacity: 0.4;
