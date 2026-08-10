@@ -345,10 +345,10 @@ body {
 /* ---- Landing: revelado al hacer scroll ---- */
 .revelar {
   opacity: 0;
-  transform: translateY(2rem);
+  transform: translateY(2.75rem);
   transition:
-    opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
-    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity 0.85s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.85s cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: opacity, transform;
 }
 .revelar[data-visible='true'] {
@@ -356,13 +356,13 @@ body {
   transform: none;
 }
 .revelar-izquierda {
-  transform: translateX(-2rem);
+  transform: translateX(-2.75rem);
 }
 .revelar-derecha {
-  transform: translateX(2rem);
+  transform: translateX(2.75rem);
 }
 .revelar-zoom {
-  transform: scale(0.94);
+  transform: scale(0.92);
 }
 
 /* Degradado de marca para titulares de la landing */

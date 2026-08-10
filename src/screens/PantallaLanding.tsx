@@ -38,10 +38,10 @@ function ProgresoScroll() {
   }, []);
 
   return (
-    <div className="fixed top-0 left-0 w-full h-1 z-50 bg-transparent" aria-hidden="true">
+    <div className="fixed top-0 left-0 w-full h-1.5 z-50 bg-primary-fixed/40" aria-hidden="true">
       <div
-        className="h-full bg-primary origin-left transition-transform duration-150 ease-out"
-        style={{ transform: `scaleX(${progreso})`, width: '100%' }}
+        className="h-full w-full bg-primary origin-left transition-transform duration-150 ease-out shadow-[0_0_10px_rgba(13,148,136,0.6)]"
+        style={{ transform: `scaleX(${progreso})` }}
       />
     </div>
   );
