@@ -74,14 +74,28 @@ interface EstadoApp {
   ajustarStock: (ingredienteId: string, delta: number, tipo: TipoMovimiento, nota?: string) => void;
   asegurarIngrediente: (nombre: string, categoria: CategoriaIngrediente, unidadBase: UnidadBase, imagen?: string) => string;
   registrarProductoEscaneado: (producto: ProductoEscaneado, cantidad: number, caducidad?: string) => void;
+  /** Guarda o actualiza la ficha del producto (código de barras) sin tocar el stock. */
+  guardarFichaEscaneada: (producto: ProductoEscaneado) => string;
   fijarCaducidad: (ingredienteId: string, caducidad: string | undefined) => void;
   fijarStockMinimo: (ingredienteId: string, stockMinimo: number) => void;
   /** Quita el producto de la despensa (el catálogo se mantiene por si hay recetas). */
   eliminarDeDespensa: (ingredienteId: string) => void;
-  /** Edita la ficha del producto: nombre, marca, supermercado, unidad, categoría. */
+  /** Edita la ficha del producto: nombre, marca, supermercado, unidad, categoría, código. */
   actualizarIngrediente: (
     ingredienteId: string,
-    cambios: Partial<Pick<Ingrediente, 'nombre' | 'marca' | 'supermercado' | 'unidadBase' | 'categoria'>>,
+    cambios: Partial<
+      Pick<
+        Ingrediente,
+        | 'nombre'
+        | 'marca'
+        | 'supermercado'
+        | 'unidadBase'
+        | 'categoria'
+        | 'codigoBarras'
+        | 'cantidadEmpaque'
+        | 'imagen'
+      >
+    >,
   ) => void;
   /** Fija la cantidad exacta en despensa (registra el ajuste en el historial). */
   fijarCantidad: (ingredienteId: string, cantidad: number) => void;
@@ -254,14 +268,58 @@ export const useAppStore = create<EstadoApp>()(
         return nuevo.id;
       },
 
+      /** Guarda o actualiza la ficha del producto (código de barras) sin tocar el stock. */
+      guardarFichaEscaneada: (producto) => {
+        const codigoNorm = producto.codigo.replace(/\D/g, '');
+        const porCodigo = codigoNorm
+          ? get().ingredientes.find((i) => {
+              const c = i.codigoBarras?.replace(/\D/g, '') ?? '';
+              return (
+                c === codigoNorm ||
+                (c.length === 13 && c.startsWith('0') && c.slice(1) === codigoNorm) ||
+                (codigoNorm.length === 13 &&
+                  codigoNorm.startsWith('0') &&
+                  codigoNorm.slice(1) === c)
+              );
+            })
+          : undefined;
+
+        const id =
+          porCodigo?.id ??
+          get().asegurarIngrediente(
+            producto.nombre,
+            producto.categoria,
+            producto.unidadBase,
+            producto.imagen,
+          );
+
+        set((estado) => ({
+          ingredientes: estado.ingredientes.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  nombre: producto.nombre.trim() || i.nombre,
+                  categoria:
+                    i.categoria === 'otros' && producto.categoria !== 'otros'
+                      ? producto.categoria
+                      : i.categoria,
+                  unidadBase: producto.unidadBase,
+                  imagen: producto.imagen ?? i.imagen,
+                  marca: producto.marca?.trim() || i.marca,
+                  supermercado: producto.supermercado?.trim() || i.supermercado,
+                  codigoBarras: codigoNorm || i.codigoBarras,
+                  cantidadEmpaque: producto.cantidadEmpaque || i.cantidadEmpaque,
+                }
+              : i,
+          ),
+        }));
+
+        return id;
+      },
+
       /** Producto escaneado → categorizado y añadido a la despensa con la unidad correcta. */
       registrarProductoEscaneado: (producto, unidadesEscaneadas, caducidad) => {
-        const id = get().asegurarIngrediente(
-          producto.nombre,
-          producto.categoria,
-          producto.unidadBase,
-          producto.imagen,
-        );
+        const id = get().guardarFichaEscaneada(producto);
         const delta = unidadesEscaneadas * producto.cantidadEmpaque;
         get().ajustarStock(
           id,
@@ -332,6 +390,14 @@ export const useAppStore = create<EstadoApp>()(
                     cambios.supermercado !== undefined
                       ? cambios.supermercado.trim() || undefined
                       : i.supermercado,
+                  codigoBarras:
+                    cambios.codigoBarras !== undefined
+                      ? cambios.codigoBarras.replace(/\D/g, '') || undefined
+                      : i.codigoBarras,
+                  cantidadEmpaque:
+                    cambios.cantidadEmpaque !== undefined
+                      ? Math.max(0, cambios.cantidadEmpaque) || undefined
+                      : i.cantidadEmpaque,
                 }
               : i,
           ),
@@ -642,7 +708,7 @@ export const useAppStore = create<EstadoApp>()(
     }),
     {
       name: 'cocinita-datos',
-      version: 6,
+      version: 7,
       migrate: (persisted, version) => {
         const estado = persisted as Partial<EstadoApp>;
         if (version < 2 && Array.isArray(estado.despensa)) {
@@ -664,6 +730,7 @@ export const useAppStore = create<EstadoApp>()(
           }));
         }
         // v6: caloriasPorRacion opcional en Receta — no requiere migración.
+        // v7: codigoBarras / cantidadEmpaque opcionales en Ingrediente — no requiere migración.
         return estado as EstadoApp;
       },
     },

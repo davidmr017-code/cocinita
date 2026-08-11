@@ -42,6 +42,10 @@ export interface Ingrediente {
   marca?: string;
   /** Supermercado habitual donde se compra. */
   supermercado?: string;
+  /** Código de barras EAN/UPC normalizado (para reescaneos). */
+  codigoBarras?: string;
+  /** Cantidad neta del envase en unidadBase (p. ej. 500 g). */
+  cantidadEmpaque?: number;
 }
 
 /** Línea de ingrediente dentro de una receta (cantidad para `raciones` base). */
@@ -193,6 +197,7 @@ export interface ProductoEscaneado {
   codigo: string;
   nombre: string;
   marca?: string;
+  supermercado?: string;
   /** Lista de ingredientes declarada del producto envasado. */
   ingredientesTexto?: string;
   imagen?: string;
@@ -202,6 +207,8 @@ export interface ProductoEscaneado {
   unidadBase: UnidadBase;
   /** Cantidad neta del envase en unidad base (p. ej. 500 g, 1000 ml). */
   cantidadEmpaque: number;
+  /** true si la ficha viene del catálogo local (escaneo previo). */
+  origenLocal?: boolean;
 }
 
 /* ------------------------------- Perfil ---------------------------------- */

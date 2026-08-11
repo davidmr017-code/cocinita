@@ -1,9 +1,9 @@
 /**
  * ============================================================================
- * SERVICIO DE PRODUCTOS — Open Food Facts
+ * SERVICIO DE PRODUCTOS — Open Food Facts + catálogo local
  * ============================================================================
  */
-import type { ProductoEscaneado } from '../domain/tipos';
+import type { Ingrediente, ProductoEscaneado, UnidadBase } from '../domain/tipos';
 import {
   inferirCategoria,
   inferirUnidadEmpaque,
@@ -43,14 +43,60 @@ export function normalizarCodigoBarras(codigo: string): string {
   return digitos;
 }
 
-/** Producto mínimo cuando no hay ficha OFF (alta manual desde escáner). */
-export function productoManual(codigo: string, nombre: string): ProductoEscaneado {
+function codigosEquivalentes(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.length === 13 && a.startsWith('0') && a.slice(1) === b) return true;
+  if (b.length === 13 && b.startsWith('0') && b.slice(1) === a) return true;
+  return false;
+}
+
+/** Busca en el catálogo local un producto ya registrado con ese código. */
+export function buscarProductoLocal(
+  codigo: string,
+  catalogo: Ingrediente[],
+): ProductoEscaneado | null {
+  const normalizado = normalizarCodigoBarras(codigo.trim());
+  if (!normalizado) return null;
+
+  const ficha = catalogo.find((i) =>
+    codigosEquivalentes(normalizarCodigoBarras(i.codigoBarras ?? ''), normalizado),
+  );
+  if (!ficha) return null;
+
   return {
-    codigo,
-    nombre,
-    categoria: 'otros',
-    unidadBase: 'ud',
-    cantidadEmpaque: 1,
+    codigo: normalizado,
+    nombre: ficha.nombre,
+    marca: ficha.marca,
+    supermercado: ficha.supermercado,
+    imagen: ficha.imagen,
+    categoria: ficha.categoria,
+    unidadBase: ficha.unidadBase,
+    cantidadEmpaque: ficha.cantidadEmpaque && ficha.cantidadEmpaque > 0 ? ficha.cantidadEmpaque : 1,
+    origenLocal: true,
+  };
+}
+
+/** Producto mínimo cuando no hay ficha OFF (alta manual desde escáner). */
+export function productoManual(
+  codigo: string,
+  nombre: string,
+  extras?: {
+    supermercado?: string;
+    unidadBase?: UnidadBase;
+    cantidadEmpaque?: number;
+    marca?: string;
+    categoria?: ProductoEscaneado['categoria'];
+  },
+): ProductoEscaneado {
+  return {
+    codigo: normalizarCodigoBarras(codigo) || codigo,
+    nombre: nombre.trim() || `Producto ${codigo}`,
+    supermercado: extras?.supermercado?.trim() || undefined,
+    marca: extras?.marca?.trim() || undefined,
+    categoria: extras?.categoria ?? 'otros',
+    unidadBase: extras?.unidadBase ?? 'ud',
+    cantidadEmpaque: extras?.cantidadEmpaque && extras.cantidadEmpaque > 0 ? extras.cantidadEmpaque : 1,
   };
 }
 
