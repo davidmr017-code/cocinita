@@ -6,8 +6,10 @@ import { aFechaISO, nuevoId } from '../domain/utilidades';
 import {
   aCentimos,
   formatearEuro,
+  parsearImporteEscrito,
   quienDebePagarSiguiente,
   repartirIgual,
+  repartirTrasPonerACero,
   sumaRepartos,
 } from '../services/gastos';
 import { leerTicketDesdeImagen } from '../services/ocrTicket';
@@ -71,6 +73,35 @@ export function PantallaTicket() {
     const mapa: Record<string, string> = {};
     for (const r of rep) mapa[r.miembroId] = String(r.importe);
     setImportes(mapa);
+  };
+
+  /**
+   * Si el importe de alguien pasa a 0, se desmarca y el total se reparte
+   * a partes iguales entre el resto de personas seleccionadas.
+   */
+  const redistribuirTrasCero = (miembroId: string) => {
+    const resto = seleccionados.filter((id) => id !== miembroId);
+    if (resto.length === 0) {
+      setImportes((prev) => ({ ...prev, [miembroId]: '0' }));
+      return;
+    }
+    const rep = repartirTrasPonerACero(totalNum, seleccionados, miembroId);
+    const mapa: Record<string, string> = { [miembroId]: '0' };
+    for (const r of rep) mapa[r.miembroId] = String(r.importe);
+    setSeleccionados(resto);
+    setImportes(mapa);
+  };
+
+  const alCambiarImporte = (miembroId: string, raw: string) => {
+    setImportes((prev) => ({ ...prev, [miembroId]: raw }));
+    const valor = parsearImporteEscrito(raw);
+    if (valor === 0) redistribuirTrasCero(miembroId);
+  };
+
+  const alSalirImporte = (miembroId: string) => {
+    if (!seleccionados.includes(miembroId)) return;
+    const valor = parsearImporteEscrito(importes[miembroId] ?? '') ?? 0;
+    if (valor === 0) redistribuirTrasCero(miembroId);
   };
 
   const alCambiarFoto = async (dataUrl: string | undefined) => {
@@ -274,10 +305,10 @@ export function PantallaTicket() {
                   inputMode="decimal"
                   disabled={!activo}
                   value={activo ? (importes[m.id] ?? '') : ''}
-                  onChange={(e) =>
-                    setImportes((prev) => ({ ...prev, [m.id]: e.target.value }))
-                  }
+                  onChange={(e) => alCambiarImporte(m.id, e.target.value)}
+                  onBlur={() => alSalirImporte(m.id)}
                   placeholder="0"
+                  aria-label={`Importe de ${m.nombre}`}
                 />
               </div>
             );

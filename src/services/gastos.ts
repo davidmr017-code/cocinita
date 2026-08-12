@@ -34,6 +34,32 @@ export function repartirIgual(total: number, miembroIds: string[]): RepartoGasto
   return repartos;
 }
 
+/**
+ * Interpreta un importe escrito a mano. Devuelve null si aún está a medias
+ * (p. ej. "" o "0.") para no redistribuir mientras se escribe.
+ */
+export function parsearImporteEscrito(raw: string): number | null {
+  const texto = raw.trim();
+  if (!texto) return null;
+  if (/[.,]$/.test(texto)) return null;
+  const n = Number(texto.replace(',', '.'));
+  if (!Number.isFinite(n)) return null;
+  return aCentimos(n);
+}
+
+/**
+ * Excluye a quien queda a 0 y reparte el total entre el resto.
+ * Si no queda nadie, devuelve [] (no se puede redistribuir).
+ */
+export function repartirTrasPonerACero(
+  total: number,
+  miembroIds: string[],
+  excluidoId: string,
+): RepartoGasto[] {
+  const resto = miembroIds.filter((id) => id !== excluidoId);
+  return repartirIgual(total, resto);
+}
+
 export function sumaRepartos(repartos: RepartoGasto[]): number {
   return aCentimos(repartos.reduce((acc, r) => acc + (r.importe || 0), 0));
 }
