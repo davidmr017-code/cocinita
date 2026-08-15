@@ -69,11 +69,58 @@ const ESTILOS_COCINA = [
   'prioriza platos de cuchara reconfortantes',
 ];
 
-function elegirEstilo() {
-  return ESTILOS_COCINA[Math.floor(Math.random() * ESTILOS_COCINA.length)];
+function elegirEstilo(tipoComida) {
+  const porTipo = {
+    desayuno: [
+      'prioriza tostadas, bowls o platos rápidos de mañana',
+      'prioriza huevos o lácteos si hay en la despensa',
+      'prioriza opciones dulces o saladas ligeras de desayuno',
+      'prioriza batidos, porridge o elaboraciones de 10–15 min',
+    ],
+    almuerzo: [
+      'prioriza platos de cuchara o guisos para mediodía',
+      'prioriza platos completos con proteína y guarnición',
+      'prioriza cocción al horno o al microondas',
+      'prioriza pasta, arroces o legumbres',
+      'prioriza salteados y wok',
+    ],
+    cena: [
+      'prioriza cenas ligeras y digestivas',
+      'prioriza ensaladas completas o bowls',
+      'prioriza platos rápidos de menos de 25 min',
+      'prioriza pescado, huevo o verduras si hay en la despensa',
+      'prioriza sopas o cremas suaves',
+    ],
+  };
+  const lista = porTipo[tipoComida] || ESTILOS_COCINA;
+  return lista[Math.floor(Math.random() * lista.length)];
 }
 
-function construirPrompt({ despensa, alergenos, preferencias, evitados, evitarTitulos, recientes }) {
+function etiquetaTipoComida(tipo) {
+  if (tipo === 'desayuno') return 'DESAYUNO';
+  if (tipo === 'cena') return 'CENA';
+  return 'ALMUERZO / COMIDA';
+}
+
+function guiaTipoComida(tipo) {
+  if (tipo === 'desayuno') {
+    return 'Adapta las 3 recetas a DESAYUNO: porciones matutinas, técnicas rápidas, evita guisos pesados de comida/cena.';
+  }
+  if (tipo === 'cena') {
+    return 'Adapta las 3 recetas a CENA: más ligeras y digestivas que un almuerzo; evita frituras muy pesadas si hay alternativa.';
+  }
+  return 'Adapta las 3 recetas a ALMUERZO (comida del mediodía): platos más completos y saciantes.';
+}
+
+function construirPrompt({
+  despensa,
+  alergenos,
+  preferencias,
+  evitados,
+  evitarTitulos,
+  recientes,
+  tipoComida,
+}) {
   const despensaBarajada = barajar(despensa || []);
   const lineasDespensa = despensaBarajada
     .map((d) => `- ${d.nombre}: ${d.cantidad} ${d.unidad}`)
@@ -87,7 +134,8 @@ function construirPrompt({ despensa, alergenos, preferencias, evitados, evitarTi
     .filter(Boolean)
     .join('\n');
 
-  const estilo = elegirEstilo();
+  const comida = ['desayuno', 'almuerzo', 'cena'].includes(tipoComida) ? tipoComida : 'almuerzo';
+  const estilo = elegirEstilo(comida);
   const titulosEvitar = (evitarTitulos || [])
     .map((t) => String(t).trim())
     .filter(Boolean)
@@ -99,6 +147,9 @@ function construirPrompt({ despensa, alergenos, preferencias, evitados, evitarTi
 
   return `Eres el chef de una app familiar española de cocina llamada Cocinita.
 
+TIPO DE COMIDA: ${etiquetaTipoComida(comida)}.
+${guiaTipoComida(comida)}
+
 DESPENSA DISPONIBLE (usa ingredientes distintos en cada receta; no ignores lo nuevo):
 ${lineasDespensa || '- (despensa vacía)'}
 
@@ -106,9 +157,10 @@ ${restricciones ? `RESTRICCIONES DEL HOGAR:\n${restricciones}\n` : ''}
 ${ingredientesRecientes.length ? `INGREDIENTES RECIÉN AÑADIDOS (al menos una receta debe usar varios de estos): ${ingredientesRecientes.join(', ')}.\n` : ''}
 ENFOQUE DE ESTA RONDA: ${estilo}.
 ${titulosEvitar.length ? `NO REPITAS estas recetas ni variantes casi iguales (cambia el plato principal): ${titulosEvitar.join(' · ')}.\n` : ''}
-Propón exactamente 3 recetas caseras y realistas, BIEN DISTINTAS entre sí (técnicas y protagonistas diferentes), que se puedan hacer usando PRINCIPALMENTE los ingredientes de la despensa. Puedes asumir básicos (agua, sal, aceite, pimienta). Si falta algún ingrediente secundario, inclúyelo igualmente marcándolo con "enDespensa": false.
+Propón exactamente 3 recetas caseras y realistas, BIEN DISTINTAS entre sí (técnicas y protagonistas diferentes), adecuadas para ${etiquetaTipoComida(comida).toLowerCase()}, que se puedan hacer usando PRINCIPALMENTE los ingredientes de la despensa. Puedes asumir básicos (agua, sal, aceite, pimienta). Si falta algún ingrediente secundario, inclúyelo igualmente marcándolo con "enDespensa": false.
 
 Varía títulos y platos: no propongas siempre tortilla, pasta genérica o arroz blanco si hay otras opciones con lo disponible.
+Incluye la etiqueta "${comida}" en etiquetas de cada receta.
 
 Responde SOLO con JSON válido, sin texto adicional ni markdown, con esta forma exacta:
 {
@@ -119,7 +171,7 @@ Responde SOLO con JSON válido, sin texto adicional ni markdown, con esta forma 
       "raciones": 2,
       "tiempoMin": 30,
       "dificultad": "facil|media|dificil",
-      "etiquetas": ["casero"],
+      "etiquetas": ["casero", "${comida}"],
       "ingredientes": [
         { "nombre": "string", "cantidad": 200, "unidad": "g|kg|ml|l|ud|cda|cdta", "enDespensa": true }
       ],
@@ -214,10 +266,14 @@ function construirRestricciones({ alergenos, preferencias, evitados }) {
     .join('\n');
 }
 
-function construirPromptChat({ despensa, alergenos, preferencias, evitados, mensaje }) {
+function construirPromptChat({ despensa, alergenos, preferencias, evitados, mensaje, tipoComida }) {
   const restricciones = construirRestricciones({ alergenos, preferencias, evitados });
+  const comida = ['desayuno', 'almuerzo', 'cena'].includes(tipoComida) ? tipoComida : 'almuerzo';
 
   return `Eres el chef de Cocinita, una app familiar española de cocina.
+
+TIPO DE COMIDA OBJETIVO: ${etiquetaTipoComida(comida)}.
+${guiaTipoComida(comida).replace('las 3 recetas', 'la receta')}
 
 DESPENSA ACTUAL (compara cada ingrediente de la receta con esta lista; marca enDespensa=true solo si hay cantidad suficiente):
 ${construirContextoDespensa(despensa)}
@@ -229,7 +285,7 @@ Petición del usuario: "${mensaje}"
 
 Responde en español. Sé creativo y no propongas siempre el mismo plato típico: varía técnica y protagonista según la despensa.
 Si hay ingredientes poco habituales o recién añadidos, úsalos cuando encajen.
-Si el usuario pide una receta concreta o pregunta qué le falta, incluye la receta completa.
+Si el usuario pide una receta concreta o pregunta qué le falta, incluye la receta completa adaptada a ${etiquetaTipoComida(comida).toLowerCase()}.
 Si solo conversa o pregunta algo general, receta puede ser null.
 
 Responde SOLO con JSON válido, sin markdown:
@@ -241,7 +297,7 @@ Responde SOLO con JSON válido, sin markdown:
     "raciones": 2,
     "tiempoMin": 30,
     "dificultad": "facil|media|dificil",
-    "etiquetas": ["casero"],
+    "etiquetas": ["casero", "${comida}"],
     "ingredientes": [
       { "nombre": "string", "cantidad": 200, "unidad": "g|kg|ml|l|ud|cda|cdta", "enDespensa": true }
     ],
@@ -287,7 +343,14 @@ export async function chatChefIA(payload) {
 
   mensajesGroq.push({
     role: 'user',
-    content: construirPromptChat({ despensa, alergenos, preferencias, evitados, mensaje }),
+    content: construirPromptChat({
+      despensa,
+      alergenos,
+      preferencias,
+      evitados,
+      mensaje,
+      tipoComida: payload.tipoComida,
+    }),
   });
 
   const texto = await llamarGroq(mensajesGroq, { temperature: 0.75, max_tokens: 4500 });

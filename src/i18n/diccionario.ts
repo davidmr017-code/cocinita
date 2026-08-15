@@ -178,6 +178,10 @@ const es = {
     sugerenciaPaella: 'Paella para 4',
     sugerenciaLasaña: 'Lasaña vegetariana',
     sugerenciaTortilla: 'Tortilla de patatas',
+    tipoComida: '¿Para qué comida?',
+    desayuno: 'Desayuno',
+    almuerzo: 'Almuerzo',
+    cena: 'Cena',
   },
   menu: {
     titulo: 'Menú semanal',
@@ -620,6 +624,10 @@ const tr: Diccionario = {
     sugerenciaPaella: '4 kişilik paella',
     sugerenciaLasaña: 'Sebzeli lazanya',
     sugerenciaTortilla: 'Patatesli omlet',
+    tipoComida: 'Hangi öğün?',
+    desayuno: 'Kahvaltı',
+    almuerzo: 'Öğle',
+    cena: 'Akşam',
   },
   menu: {
     titulo: 'Haftalık menü',
