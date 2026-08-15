@@ -9,6 +9,7 @@ import {
   pedirRecetasIA,
   type IngredienteFaltanteIA,
   type RecetaIA,
+  type TipoMomentoChef,
 } from '../services/api';
 import { sugerirCategoriaPorNombre } from '../services/categoriasProducto';
 import { ETIQUETA_ALERGENO, ETIQUETA_PREFERENCIA } from '../services/perfil';
@@ -33,6 +34,16 @@ function aUnidadBase(u: string): 'g' | 'ml' | 'ud' {
 }
 
 type VistaChef = 'sugerencias' | 'chat';
+
+const MOMENTOS: TipoMomentoChef[] = ['desayuno', 'almuerzo', 'cena'];
+
+/** Sugiere desayuno / almuerzo / cena según la hora local. */
+function momentoPorHora(ahora = new Date()): TipoMomentoChef {
+  const h = ahora.getHours();
+  if (h < 11) return 'desayuno';
+  if (h < 17) return 'almuerzo';
+  return 'cena';
+}
 
 type MensajeChat = {
   id: string;
@@ -230,6 +241,7 @@ export function PantallaChef() {
   const token = useAuthStore((s) => s.token);
 
   const [vista, setVista] = useState<VistaChef>('sugerencias');
+  const [tipoComida, setTipoComida] = useState<TipoMomentoChef>(() => momentoPorHora());
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [propuestas, setPropuestas] = useState<RecetaIA[] | null>(null);
@@ -319,6 +331,7 @@ export function PantallaChef() {
         ...restricciones,
         evitarTitulos: evitar,
         recientes,
+        tipoComida,
       });
       setPropuestas(res.recetas);
       setAbierta(res.recetas.length > 0 ? 0 : null);
@@ -353,6 +366,7 @@ export function PantallaChef() {
         historial,
         despensa: despensaCompleta,
         ...restricciones,
+        tipoComida,
       });
 
       const idAsistente = nuevoId();
@@ -449,6 +463,32 @@ export function PantallaChef() {
         <Chip activo={vista === 'chat'} onClick={() => setVista('chat')}>
           {t('chef.chat')}
         </Chip>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-xs font-semibold text-on-surface-variant mb-2">{t('chef.tipoComida')}</p>
+        <div className="flex gap-2">
+          {MOMENTOS.map((m) => (
+            <Chip
+              key={m}
+              activo={tipoComida === m}
+              onClick={() => {
+                if (m === tipoComida) return;
+                setTipoComida(m);
+                setTitulosEvitados([]);
+                setPropuestas(null);
+                setAbierta(null);
+                setGuardadas(new Set());
+              }}
+            >
+              {m === 'desayuno'
+                ? t('chef.desayuno')
+                : m === 'cena'
+                  ? t('chef.cena')
+                  : t('chef.almuerzo')}
+            </Chip>
+          ))}
+        </div>
       </div>
 
       {error && (

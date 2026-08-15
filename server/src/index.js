@@ -431,6 +431,9 @@ app.post('/api/ia/recetas', middlewareAuth, async (req, res) => {
       recientes: Array.isArray(req.body?.recientes)
         ? req.body.recientes.slice(0, 12).map((n) => String(n).slice(0, 80))
         : [],
+      tipoComida: ['desayuno', 'almuerzo', 'cena'].includes(req.body?.tipoComida)
+        ? req.body.tipoComida
+        : 'almuerzo',
     });
 
     res.json(resultado);
@@ -442,7 +445,7 @@ app.post('/api/ia/recetas', middlewareAuth, async (req, res) => {
 
 /**
  * Chat con el Chef IA: recetas a petición y faltantes vs despensa.
- * Body: { mensaje, historial?, despensa, alergenos?, preferencias?, evitados? }
+ * Body: { mensaje, historial?, despensa, alergenos?, preferencias?, evitados?, tipoComida? }
  */
 app.post('/api/ia/chat', middlewareAuth, async (req, res) => {
   try {
@@ -473,6 +476,9 @@ app.post('/api/ia/chat', middlewareAuth, async (req, res) => {
       alergenos: Array.isArray(req.body?.alergenos) ? req.body.alergenos.slice(0, 20).map(String) : [],
       preferencias: Array.isArray(req.body?.preferencias) ? req.body.preferencias.slice(0, 20).map(String) : [],
       evitados: Array.isArray(req.body?.evitados) ? req.body.evitados.slice(0, 30).map(String) : [],
+      tipoComida: ['desayuno', 'almuerzo', 'cena'].includes(req.body?.tipoComida)
+        ? req.body.tipoComida
+        : 'almuerzo',
     });
 
     res.json(resultado);

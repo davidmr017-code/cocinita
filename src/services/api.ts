@@ -136,6 +136,9 @@ export type RecetaIA = {
   pasos: { titulo: string; descripcion: string }[];
 };
 
+/** Momento del día para contextualizar al Chef IA (no confundir con TipoComida del menú). */
+export type TipoMomentoChef = 'desayuno' | 'almuerzo' | 'cena';
+
 export async function pedirRecetasIA(
   token: string,
   payload: {
@@ -147,6 +150,8 @@ export async function pedirRecetasIA(
     evitarTitulos?: string[];
     /** Ingredientes recién añadidos a priorizar. */
     recientes?: string[];
+    /** Desayuno, almuerzo o cena. */
+    tipoComida?: TipoMomentoChef;
   },
 ) {
   return pedir<{ recetas: RecetaIA[] }>('/api/ia/recetas', {
@@ -177,6 +182,8 @@ export async function chatChefIA(
     alergenos: string[];
     preferencias: string[];
     evitados: string[];
+    /** Desayuno, almuerzo o cena. */
+    tipoComida?: TipoMomentoChef;
   },
 ) {
   return pedir<RespuestaChatChef>('/api/ia/chat', {
