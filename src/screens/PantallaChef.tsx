@@ -235,6 +235,8 @@ export function PantallaChef() {
   const [propuestas, setPropuestas] = useState<RecetaIA[] | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
   const [guardadas, setGuardadas] = useState<Set<number>>(new Set());
+  /** Títulos ya vistos en esta sesión para no repetir al pedir otras. */
+  const [titulosEvitados, setTitulosEvitados] = useState<string[]>([]);
 
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [entradaChat, setEntradaChat] = useState('');
@@ -263,6 +265,15 @@ export function PantallaChef() {
     [despensaCompleta],
   );
 
+  /** Nombres de productos añadidos en las últimas 48 h (para priorizarlos). */
+  const recientes = useMemo(() => {
+    const limite = Date.now() - 48 * 3600_000;
+    return despensa
+      .filter((i) => i.cantidad > 0 && i.anadidoEn && new Date(i.anadidoEn).getTime() >= limite)
+      .map((i) => fichas.get(i.ingredienteId)?.nombre)
+      .filter((n): n is string => Boolean(n));
+  }, [despensa, fichas]);
+
   const restricciones = useMemo(
     () => ({
       alergenos: [
@@ -286,19 +297,38 @@ export function PantallaChef() {
     }
   }, [mensajes, cargando, vista]);
 
-  const pedir = async () => {
+  const pedir = async (otras = false) => {
     if (!token) return;
     setCargando(true);
     setError(null);
-    setPropuestas(null);
     setGuardadas(new Set());
+
+    const evitar = otras
+      ? [...new Set([...titulosEvitados, ...(propuestas ?? []).map((r) => r.titulo)])]
+      : [];
+
+    if (otras) setTitulosEvitados(evitar);
+    else setTitulosEvitados([]);
+
+    setPropuestas(null);
     try {
+      // Baraja en cliente para que el payload no sea siempre idéntico.
+      const despensaBarajada = [...conStock].sort(() => Math.random() - 0.5);
       const res = await pedirRecetasIA(token, {
-        despensa: conStock,
+        despensa: despensaBarajada,
         ...restricciones,
+        evitarTitulos: evitar,
+        recientes,
       });
       setPropuestas(res.recetas);
       setAbierta(res.recetas.length > 0 ? 0 : null);
+      if (otras) {
+        setTitulosEvitados((prev) => [
+          ...new Set([...prev, ...res.recetas.map((r) => r.titulo)]),
+        ]);
+      } else {
+        setTitulosEvitados(res.recetas.map((r) => r.titulo));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron generar recetas');
     } finally {
@@ -429,7 +459,7 @@ export function PantallaChef() {
         <>
           <button
             type="button"
-            onClick={() => void pedir()}
+            onClick={() => void pedir(false)}
             disabled={cargando || conStock.length === 0}
             className="btn-primario w-full justify-center mb-4 disabled:opacity-40"
           >
@@ -466,7 +496,7 @@ export function PantallaChef() {
 
               <button
                 type="button"
-                onClick={() => void pedir()}
+                onClick={() => void pedir(true)}
                 disabled={cargando}
                 className="btn-secundario justify-center"
               >

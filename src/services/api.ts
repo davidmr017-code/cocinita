@@ -143,6 +143,10 @@ export async function pedirRecetasIA(
     alergenos: string[];
     preferencias: string[];
     evitados: string[];
+    /** Títulos ya propuestos que no deben repetirse. */
+    evitarTitulos?: string[];
+    /** Ingredientes recién añadidos a priorizar. */
+    recientes?: string[];
   },
 ) {
   return pedir<{ recetas: RecetaIA[] }>('/api/ia/recetas', {

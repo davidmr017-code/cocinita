@@ -425,6 +425,12 @@ app.post('/api/ia/recetas', middlewareAuth, async (req, res) => {
       alergenos: Array.isArray(req.body?.alergenos) ? req.body.alergenos.slice(0, 20).map(String) : [],
       preferencias: Array.isArray(req.body?.preferencias) ? req.body.preferencias.slice(0, 20).map(String) : [],
       evitados: Array.isArray(req.body?.evitados) ? req.body.evitados.slice(0, 30).map(String) : [],
+      evitarTitulos: Array.isArray(req.body?.evitarTitulos)
+        ? req.body.evitarTitulos.slice(0, 24).map((t) => String(t).slice(0, 120))
+        : [],
+      recientes: Array.isArray(req.body?.recientes)
+        ? req.body.recientes.slice(0, 12).map((n) => String(n).slice(0, 80))
+        : [],
     });
 
     res.json(resultado);
