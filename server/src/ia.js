@@ -227,8 +227,9 @@ Puedes asumir básicos (agua, sal, aceite, pimienta) como enDespensa=true.
 
 Petición del usuario: "${mensaje}"
 
-Sé creativo y no propongas siempre el mismo plato típico: varía técnica y protagonista según la despensa.
+Responde en español. Sé creativo y no propongas siempre el mismo plato típico: varía técnica y protagonista según la despensa.
 Si hay ingredientes poco habituales o recién añadidos, úsalos cuando encajen.
+Si el usuario pide una receta concreta o pregunta qué le falta, incluye la receta completa.
 Si solo conversa o pregunta algo general, receta puede ser null.
 
 Responde SOLO con JSON válido, sin markdown:
