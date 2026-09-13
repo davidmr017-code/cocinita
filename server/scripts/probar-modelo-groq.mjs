@@ -37,16 +37,30 @@ const cuerpoDia =
 assert(esCuotaDiaria(429, cuerpoDia), 'debe detectar TPD');
 assert(mensajeErrorGroq(429, cuerpoDia).toLowerCase().includes('cuota'), 'msg TPD');
 
-const msgs = [{ role: 'user', content: 'hola '.repeat(500) }];
+const msgs = [{ role: 'user', content: 'ingrediente '.repeat(2500) }];
 const est = estimarTokensMensajes(msgs);
 const capped = ajustarMaxTokens(msgs, 4000);
-assert(capped < 4000, `debe recortar max_tokens: ${capped}`);
-assert(est + capped <= 7500 + 50, `suma fuera de techo: est=${est} max=${capped}`);
+assert(capped === 600, `prompt enorme debe bajar a 600: est=${est} capped=${capped}`);
+
+const msgsOk = [{ role: 'user', content: 'ingrediente '.repeat(800) }];
+const estOk = estimarTokensMensajes(msgsOk);
+const cappedOk = ajustarMaxTokens(msgsOk, 4000);
+assert(cappedOk < 4000, `debe recortar max_tokens: est=${estOk} capped=${cappedOk}`);
+assert(estOk + cappedOk <= 7500 + 50, `suma fuera de techo: est=${estOk} max=${cappedOk}`);
 
 console.log('OK TPM + mensajes Groq');
 console.log(
   JSON.stringify(
-    { porDefecto, remapeado, msgGrande, capped, est, msgCuota: mensajeErrorGroq(429, cuerpoDia) },
+    {
+      porDefecto,
+      remapeado,
+      msgGrande,
+      capped,
+      est,
+      cappedOk,
+      estOk,
+      msgCuota: mensajeErrorGroq(429, cuerpoDia),
+    },
     null,
     2,
   ),
