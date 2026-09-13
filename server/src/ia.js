@@ -486,9 +486,9 @@ export async function chatChefIA(payload) {
     },
   ];
 
-  for (const h of historial.slice(-8)) {
+  for (const h of historial.slice(-4)) {
     if (h.role === 'user' || h.role === 'assistant') {
-      mensajesGroq.push({ role: h.role, content: String(h.content).slice(0, 800) });
+      mensajesGroq.push({ role: h.role, content: String(h.content).slice(0, 500) });
     }
   }
 

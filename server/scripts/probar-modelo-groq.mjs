@@ -42,7 +42,7 @@ const est = estimarTokensMensajes(msgs);
 const capped = ajustarMaxTokens(msgs, 4000);
 assert(capped === 600, `prompt enorme debe bajar a 600: est=${est} capped=${capped}`);
 
-const msgsOk = [{ role: 'user', content: 'ingrediente '.repeat(800) }];
+const msgsOk = [{ role: 'user', content: 'ingrediente '.repeat(1200) }];
 const estOk = estimarTokensMensajes(msgsOk);
 const cappedOk = ajustarMaxTokens(msgsOk, 4000);
 assert(cappedOk < 4000, `debe recortar max_tokens: est=${estOk} capped=${cappedOk}`);
