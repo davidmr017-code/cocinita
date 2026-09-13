@@ -411,7 +411,7 @@ app.post('/api/ia/recetas', middlewareAuth, async (req, res) => {
       });
     }
 
-    const despensa = Array.isArray(req.body?.despensa) ? req.body.despensa.slice(0, 120) : [];
+    const despensa = Array.isArray(req.body?.despensa) ? req.body.despensa.slice(0, 50) : [];
     if (despensa.length === 0) {
       return res.status(400).json({ error: 'Tu despensa está vacía: añade ingredientes primero' });
     }
@@ -460,7 +460,7 @@ app.post('/api/ia/chat', middlewareAuth, async (req, res) => {
       return res.status(400).json({ error: 'Escribe qué receta quieres o qué te apetece cocinar' });
     }
 
-    const despensa = Array.isArray(req.body?.despensa) ? req.body.despensa.slice(0, 120) : [];
+    const despensa = Array.isArray(req.body?.despensa) ? req.body.despensa.slice(0, 50) : [];
     const historial = Array.isArray(req.body?.historial)
       ? req.body.historial.slice(-10).filter((h) => h?.role && h?.content)
       : [];
