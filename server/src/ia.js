@@ -1,48 +1,126 @@
 /**
  * Recetas con IA (Groq, API compatible con OpenAI).
  * Recibe la despensa y el perfil del hogar y devuelve recetas en JSON.
+ *
+ * Nota: Groq retiró llama-3.3-70b-versatile / llama-3.1-8b-instant (16 ago 2026).
+ * @see https://console.groq.com/docs/deprecations
  */
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODELO = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+
+/** Modelo por defecto (recomendado por Groq tras retirar Llama 3.3 70B). */
+const MODELO_POR_DEFECTO = 'openai/gpt-oss-120b';
+
+/** Si en Railway quedó un ID antiguo, lo reescribimos al reemplazo oficial. */
+const MODELOS_RETIRADOS = {
+  'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
+  'llama-3.1-8b-instant': 'openai/gpt-oss-20b',
+  'llama-3.1-70b-versatile': 'openai/gpt-oss-120b',
+  'llama3-70b-8192': 'openai/gpt-oss-120b',
+  'llama3-8b-8192': 'openai/gpt-oss-20b',
+  'qwen/qwen3-32b': 'openai/gpt-oss-120b',
+  'meta-llama/llama-4-scout-17b-16e-instruct': 'openai/gpt-oss-120b',
+};
+
+const MODELOS_RESPALDO = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+
+/** Lista de modelos a intentar (principal + respaldos), sin duplicados. */
+export function resolverModelos(envModel = process.env.GROQ_MODEL) {
+  const pedido = String(envModel || '').trim() || MODELO_POR_DEFECTO;
+  const principal = MODELOS_RETIRADOS[pedido] || pedido;
+  return [...new Set([principal, ...MODELOS_RESPALDO])];
+}
 
 export function iaDisponible() {
   return Boolean(process.env.GROQ_API_KEY);
 }
 
+function esErrorModeloInexistente(status, texto) {
+  if (status === 404) return true;
+  const t = String(texto || '').toLowerCase();
+  return (
+    t.includes('does not exist') ||
+    t.includes('model_not_found') ||
+    t.includes('not have access to it') ||
+    (t.includes('model') && t.includes('decommissioned'))
+  );
+}
+
+/** Mensaje claro para la UI a partir del cuerpo de error de Groq. */
+export function mensajeErrorGroq(status, texto) {
+  const t = String(texto || '');
+  const lower = t.toLowerCase();
+
+  if (status === 401 || status === 403) return 'Clave de Groq inválida o sin permiso';
+
+  if (status === 429) {
+    if (
+      lower.includes('quota') ||
+      lower.includes('tokens per day') ||
+      lower.includes('requests per day') ||
+      lower.includes('"type":"tokens"') ||
+      /\btpd\b/.test(lower) ||
+      /\brpd\b/.test(lower)
+    ) {
+      return 'Se agotó la cuota gratuita de hoy en Groq. Prueba mañana o usa otro modelo (GROQ_MODEL).';
+    }
+    return 'La IA está saturada ahora mismo. Espera un minuto e inténtalo de nuevo.';
+  }
+
+  if (esErrorModeloInexistente(status, t)) {
+    return 'El modelo de IA ya no está disponible en Groq. Revisa GROQ_MODEL en Railway.';
+  }
+
+  return 'El servicio de IA no respondió. Inténtalo de nuevo en unos minutos.';
+}
+
 async function llamarGroq(messages, { temperature = 0.7, max_tokens = 4000, seed } = {}) {
-  const cuerpo = {
-    model: MODELO,
-    temperature,
-    max_tokens,
-    top_p: 0.95,
-    response_format: { type: 'json_object' },
-    messages,
-  };
-  // Semilla distinta en cada petición → más variedad entre llamadas.
-  if (typeof seed === 'number' && Number.isFinite(seed)) {
-    cuerpo.seed = Math.abs(Math.trunc(seed)) % 2_147_483_647;
-  }
+  const modelos = resolverModelos();
+  let ultimoError = null;
 
-  const res = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify(cuerpo),
-  });
+  for (const model of modelos) {
+    const cuerpo = {
+      model,
+      temperature,
+      max_tokens,
+      top_p: 0.95,
+      response_format: { type: 'json_object' },
+      messages,
+    };
+    // Semilla distinta en cada petición → más variedad entre llamadas.
+    if (typeof seed === 'number' && Number.isFinite(seed)) {
+      cuerpo.seed = Math.abs(Math.trunc(seed)) % 2_147_483_647;
+    }
 
-  if (!res.ok) {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify(cuerpo),
+    });
+
+    if (res.ok) {
+      if (model !== modelos[0]) {
+        console.warn(`Groq: modelo ${modelos[0]} no disponible; usado respaldo ${model}`);
+      }
+      const datos = await res.json();
+      return datos.choices?.[0]?.message?.content || '';
+    }
+
     const texto = await res.text().catch(() => '');
-    console.error('Groq error', res.status, texto.slice(0, 500));
-    if (res.status === 401) throw new Error('Clave de Groq inválida');
-    if (res.status === 429) throw new Error('La IA está saturada, prueba en un minuto');
-    throw new Error('El servicio de IA no respondió');
+    console.error('Groq error', res.status, model, texto.slice(0, 500));
+    ultimoError = new Error(mensajeErrorGroq(res.status, texto));
+
+    // Modelo retirado / sin acceso → probar el siguiente.
+    if (esErrorModeloInexistente(res.status, texto) && model !== modelos[modelos.length - 1]) {
+      continue;
+    }
+    throw ultimoError;
   }
 
-  const datos = await res.json();
-  return datos.choices?.[0]?.message?.content || '';
+  throw ultimoError || new Error('El servicio de IA no respondió');
 }
 
 function barajar(lista) {

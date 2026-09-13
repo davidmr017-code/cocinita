@@ -32,6 +32,7 @@ sigue en Vercel; la API + Postgres viven en Railway.
 | `JWT_SECRET` | una cadena larga aleatoria |
 | `CORS_ORIGINS` | `https://tu-app.vercel.app` (y `http://localhost:5173` si pruebas en local) |
 | `GROQ_API_KEY` | clave gratuita de [console.groq.com](https://console.groq.com) para el Chef IA (opcional) |
+| `GROQ_MODEL` | opcional; por defecto `openai/gpt-oss-120b` (Groq retiró Llama 3.3 70B el 16 ago 2026) |
 | `PORT` | lo asigna Railway solo; no hace falta fijarlo |
 
 5. Deploy. Comprueba `https://tu-api.up.railway.app/health` → `{ ok: true }`.
